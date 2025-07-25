@@ -1,0 +1,30 @@
+# MCP Gateway configuration
+
+# CORS
+cors:
+  enabled: true
+  allowed_origins:
+    - "*"
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+  allowed_headers:
+    - "Content-Type"
+    - "Authorization"
+  allow_credentials: true
+
+# Server
+server:
+  url: "http://localhost:8082"
+
+# OAuth
+oauth:
+  enabled: true
+  authorization_servers:
+    - "https://dev-1234567890.okta.com/oauth2/default"
+  bearer_methods_supported:
+    - "header"
+  scopes_supported:
+    - "openid"
