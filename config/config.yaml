@@ -22,9 +22,32 @@ server:
 # OAuth
 oauth:
   enabled: true
+  provider: "okta"
   authorization_servers:
-    - "https://dev-1234567890.okta.com/oauth2/default"
+    - "https://dev-1234567890.okta.com"
   bearer_methods_supported:
     - "header"
   scopes_supported:
     - "openid"
+
+# Okta
+okta:
+  issuer: "https://dev-1234567890.okta.com"
+  org_url: "https://dev-1234567890.okta.com"
+  client_id: "${OKTA_CLIENT_ID}"
+  private_key: "${OKTA_PRIVATE_KEY}"
+  private_key_id: "${OKTA_PRIVATE_KEY_ID}"
+
+# Auth
+auth:
+  claims: ["groups"]
+  mappings:
+    # claim name:group name -> scope name
+    "groups:Base": ["scope:1"]
+  permissions:
+    ".*": ["scope:1"]
+
+  options:
+    scope_mode: "any" # OR logic. Any is the user has at least one of the scopes. All is the user has all the scopes.
+    default_scope: null # deny by default
+    enabled: true

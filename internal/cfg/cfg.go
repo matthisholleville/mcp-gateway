@@ -24,6 +24,21 @@ type Cfg struct {
 	Cors   Cors   `mapstructure:"cors"`
 	OAuth  OAuth  `mapstructure:"oauth"`
 	Server Server `mapstructure:"server"`
+	Okta   Okta   `mapstructure:"okta"`
+	Auth   Auth   `mapstructure:"auth"`
+}
+
+type Auth struct {
+	Claims      []string            `mapstructure:"claims"`
+	Mappings    map[string][]string `mapstructure:"mappings"`
+	Permissions map[string][]string `mapstructure:"permissions"`
+	Options     Options             `mapstructure:"options"`
+}
+
+type Options struct {
+	ScopeMode    string  `mapstructure:"scope_mode"`
+	DefaultScope *string `mapstructure:"default_scope"`
+	Enabled      bool    `mapstructure:"enabled"`
 }
 
 type Server struct {
@@ -32,9 +47,18 @@ type Server struct {
 
 type OAuth struct {
 	Enabled                bool     `mapstructure:"enabled"`
+	Provider               string   `mapstructure:"provider"`
 	AuthorizationServers   []string `mapstructure:"authorization_servers"`
 	BearerMethodsSupported []string `mapstructure:"bearer_methods_supported"`
 	ScopesSupported        []string `mapstructure:"scopes_supported"`
+}
+
+type Okta struct {
+	Issuer       string `mapstructure:"issuer"`
+	OrgURL       string `mapstructure:"org_url"`
+	ClientID     string `mapstructure:"client_id"`
+	PrivateKey   string `mapstructure:"private_key"`
+	PrivateKeyID string `mapstructure:"private_key_id"`
 }
 
 func WriteInitConfiguration(logger *slog.Logger) {
