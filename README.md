@@ -117,6 +117,10 @@ make deps
 make dev
 ```
 
+### Using Helm (Kubernetes)
+
+For Kubernetes deployment with Helm, see: **[charts/mcp-gateway/README.md](charts/mcp-gateway/README.md)**
+
 ## ⚙️ Configuration
 
 MCP Gateway uses a YAML configuration file with environment variable substitution:

@@ -1,0 +1,50 @@
+{{ template "chart.header" . }}
+{{ template "chart.description" . }}
+
+{{ template "chart.typeBadge" . }}
+
+Simple Helm chart to deploy MCP Gateway on Kubernetes.
+
+## Quick Installation
+
+```bash
+# Create namespace
+kubectl create namespace mcp-gateway
+
+# Create secrets for authentication
+kubectl create secret generic okta-secret \
+  --from-literal=issuer="https://your-okta-domain.okta.com/oauth2/default" \
+  --from-literal=org_url="https://your-okta-domain.okta.com" \
+  --from-literal=client_id="your-client-id" \
+  --from-literal=private_key="your-private-key" \
+  --from-literal=private_key_id="your-key-id" \
+  -n mcp-gateway
+
+# Create secret for MCP server (example: n8n)
+kubectl create secret generic n8n-secret \
+  --from-literal=proxy_key="your-n8n-api-key" \
+  -n mcp-gateway
+
+# Install chart
+helm install mcp-gateway . --namespace mcp-gateway
+
+# Verify deployment
+kubectl get pods -n mcp-gateway
+```
+
+## Configuration
+
+Check `values.yaml` for all available configuration options. Customize environment variables and secrets according to your setup.
+
+## Uninstall
+
+```bash
+helm uninstall mcp-gateway -n mcp-gateway
+kubectl delete namespace mcp-gateway
+``` 
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
+{{ template "helm-docs.versionFooter" . }}

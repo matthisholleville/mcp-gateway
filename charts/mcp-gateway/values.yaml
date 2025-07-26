@@ -1,0 +1,192 @@
+# Default values for mcp-gateway.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/matthisholleville/mcp-gateway-dev
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "dev-41d8a422698fe223d91b8813a2185e1e13854b12"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+containerPort: 8082
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8082"
+
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+
+securityContext:
+  {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations:
+    {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources:
+  limits:
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 512Mi
+
+extraEnv:
+  - name: OKTA_ISSUER
+    valueFrom:
+      secretKeyRef:
+        name: okta-secret
+        key: issuer
+  - name: OKTA_ORG_URL
+    valueFrom:
+      secretKeyRef:
+        name: okta-secret
+        key: org_url
+  - name: OKTA_CLIENT_ID
+    valueFrom:
+      secretKeyRef:
+        name: okta-secret
+        key: client_id
+  - name: OKTA_PRIVATE_KEY
+    valueFrom:
+      secretKeyRef:
+        name: okta-secret
+        key: private_key
+  - name: OKTA_PRIVATE_KEY_ID
+    valueFrom:
+      secretKeyRef:
+        name: okta-secret
+        key: private_key_id
+  - name: N8N_URL
+    value: "https://n8n.example.com"
+  - name: N8N_PROXY_KEY
+    valueFrom:
+      secretKeyRef:
+        name: n8n-secret
+        key: proxy_key
+
+configuration: |
+  # MCP Gateway configuration
+
+  # CORS
+  cors:
+    enabled: true
+    allowed_origins:
+      - "*"
+    allowed_methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+    allowed_headers:
+      - "Content-Type"
+      - "Authorization"
+    allow_credentials: true
+
+  # Server
+  server:
+    url: "http://localhost:8082"
+
+  # OAuth
+  oauth:
+    enabled: true
+    provider: "okta"
+    authorization_servers:
+      - "${OKTA_ISSUER}"
+    bearer_methods_supported:
+      - "header"
+    scopes_supported:
+      - "openid"
+
+  # Okta
+  okta:
+    issuer: "${OKTA_ISSUER}"
+    org_url: "${OKTA_ORG_URL}"
+    client_id: "${OKTA_CLIENT_ID}"
+    private_key: "${OKTA_PRIVATE_KEY}"
+    private_key_id: "${OKTA_PRIVATE_KEY_ID}"
+
+  # Auth
+  auth:
+    claims: ["groups"]
+    mappings:
+      # claim name:group name -> scope name
+      "groups:Base": ["scope:1"]
+    permissions:
+      "*": ["scope:1"]
+
+    options:
+      scope_mode: "any" # OR logic. Any is the user has at least one of the scopes. All is the user has all the scopes.
+      default_scope: null # deny by default
+      enabled: true
+
+  # Proxy
+  proxy:
+    servers:
+      - name: "n8n"
+        type: "streamable-http"
+        connection:
+          url: "${N8N_URL}"
+          timeout: 30s
+        auth:
+          type: "header"
+          header: "x-n8n-key"
+          value: "${N8N_PROXY_KEY}"
+    proxy_config:
+      # Cache for tools and schemas to avoid repeated calls
+      cache_ttl: 300s # 5 minutes
+      heartbeat:
+        enabled: true
+        interval_seconds: 10
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -11,7 +11,7 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-.PHONY: help run build clean test lint fmt vet deps install serve dev check mocks swagger envrc-sample check-envrc
+.PHONY: help run build clean test lint fmt vet deps install serve dev check mocks swagger envrc-sample check-envrc helm-docs
 
 ## help: Show this help
 help:
@@ -198,6 +198,11 @@ check-envrc:
 			rm -f .envrc-sample-temp; \
 		fi; \
 	fi
+
+helm-docs:
+	@echo "$(YELLOW)Generating Helm documentation...$(RESET)"
+	helm-docs --chart-search-root=./charts/mcp-gateway --template-files=README.md.gotmpl
+	@echo "$(GREEN)✓ Helm documentation generated$(RESET)"
 
 # Default rule
 .DEFAULT_GOAL := help
