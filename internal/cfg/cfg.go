@@ -80,7 +80,7 @@ func LoadCfg(logger *slog.Logger) *Cfg {
 	var config Cfg
 	err := viper.Unmarshal(&config)
 	if err != nil {
-		logger.ErrorContext(context.Background(), "error on fetching configuration file")
+		logger.ErrorContext(context.Background(), "error on fetching configuration file", slog.Any("error", err))
 		os.Exit(1)
 	}
 

@@ -1,10 +1,15 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -16,6 +21,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/matthisholleville/mcp-gateway/internal/cfg"
 	"github.com/matthisholleville/mcp-gateway/internal/metrics"
+	"github.com/matthisholleville/mcp-gateway/internal/oauth"
 )
 
 type Server struct {
@@ -49,6 +55,7 @@ func NewServer(
 	s.configureMetrics()
 	s.registerHealthcheckRoutes()
 	s.withCORSMiddleware()
+	s.configureAuthMiddleware()
 	s.withOAuthProtectedResources()
 	s.configureMCP()
 	return s, nil
@@ -241,4 +248,63 @@ func (s *Server) addGlobalMCPContext(ctx context.Context, r *http.Request) conte
 	ctx = context.WithValue(ctx, "logger", logger)
 
 	return ctx
+}
+
+func (s *Server) configureAuthMiddleware() {
+	s.Router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+
+			isMCPPath := c.Path() == "/mcp" && c.Request().Method == "POST"
+			if !isMCPPath {
+				return next(c)
+			}
+
+			token := c.Request().Header.Get("Authorization")
+			if token == "" {
+				return s.unauth(c, "missing_token", "Missing token")
+			}
+			token = strings.TrimPrefix(token, "Bearer ")
+			provider, err := oauth.NewProvider(s.Cfg.OAuth.Provider, s.Cfg, s.Logger)
+			if err != nil {
+				return s.unauth(c, "invalid_token", "Invalid token")
+			}
+			jwtToken, err := provider.VerifyToken(token)
+			if err != nil {
+				return s.unauth(c, "invalid_token", "Invalid token")
+			}
+
+			reqBody, err := io.ReadAll(c.Request().Body)
+			if err != nil {
+				s.Logger.ErrorContext(c.Request().Context(), "Failed to read request body", "error", err)
+				return s.unauth(c, "invalid_request", "Invalid request")
+			}
+			c.Request().Body = io.NopCloser(bytes.NewBuffer(reqBody))
+			message := &mcp.CallToolRequest{}
+			err = json.Unmarshal(reqBody, message)
+			if err != nil {
+				s.Logger.ErrorContext(c.Request().Context(), "Failed to unmarshal request body", "error", err)
+				return s.unauth(c, "invalid_request", "Invalid request")
+			}
+
+			if message.Method != "tools/call" {
+				return next(c)
+			}
+
+			hasPermission := provider.VerifyPermissions(message.Params.Name, jwtToken.Claims)
+			if !hasPermission {
+				return s.unauth(c, "insufficient_scope", "Insufficient scope")
+			}
+
+			c.Set("claims", jwtToken.Claims)
+			return next(c)
+		}
+	})
+
+}
+
+func (s *Server) unauth(c echo.Context, code, msg string) error {
+	rsMetaURL := s.Cfg.OAuth.AuthorizationServers[0] + "/.well-known/oauth-protected-resource"
+	c.Response().Header().Set("WWW-Authenticate",
+		fmt.Sprintf(`Bearer resource_metadata=%q, error=%q`, rsMetaURL, code))
+	return echo.NewHTTPError(http.StatusUnauthorized, msg)
 }
