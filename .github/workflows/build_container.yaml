@@ -1,16 +1,6 @@
 name: Build container
 
 on:
-  push:
-    branches:
-      - 'main'
-      - '[0-9]+.[1-9][0-9]*.x'
-    paths-ignore:
-      - "**.md"
-      - "**.json"
-      - ".github/**"
-      - "charts/**"
-      - ".gitignore"
   pull_request:
     branches:
       - 'main'
