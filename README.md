@@ -73,7 +73,7 @@ MCP Gateway serves as a **unified entry point** for multiple MCP servers, allowi
 
 ```bash
 # Pull the latest image
-docker pull matthisholleville/mcp-gateway:latest
+docker pull ghcr.io/matthisholleville/mcp-gateway:latest
 
 # Run with environment variables
 docker run -p 8082:8082 \
@@ -84,7 +84,7 @@ docker run -p 8082:8082 \
   -e OKTA_PRIVATE_KEY_ID="your-key-id" \
   -e N8N_URL="http://your-n8n-instance:5678" \
   -e N8N_PROXY_KEY="your-n8n-api-key" \
-  matthisholleville/mcp-gateway:latest serve
+  ghcr.io/matthisholleville/mcp-gateway:latest serve
 ```
 
 ### Using Go
