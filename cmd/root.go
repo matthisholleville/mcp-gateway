@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/adrg/xdg"
@@ -106,17 +107,42 @@ func initConfig() {
 		}
 	}
 
-	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Sprintf("unable to read %s configuration : %s.", programName, cfgFile))
-	}
-	for _, k := range viper.AllKeys() {
-		value := viper.GetString(k)
-		if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
-			viper.Set(k, GetEnvOrPanic(strings.TrimSuffix(strings.TrimPrefix(value, "${"), "}")))
-		}
+	configContent := readAndSubstituteEnvVars()
+
+	viper.SetConfigType("yaml")
+	if err := viper.ReadConfig(strings.NewReader(configContent)); err != nil {
+		panic(fmt.Sprintf("unable to read configuration: %s", err))
 	}
 
 	viper.Set("logger", logger)
+}
+
+func readAndSubstituteEnvVars() string {
+	var configPath string
+	if cfgFile != "" {
+		configPath = cfgFile
+	} else {
+		configPath = fmt.Sprintf("%s/%s.yaml", cfgDirPath, programName)
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		panic(fmt.Sprintf("unable to read config file: %s", err))
+	}
+
+	return substituteEnvVarsInString(string(content))
+}
+
+// substituteEnvVarsInString remplace toutes les occurrences de ${VAR_NAME} par la valeur de la variable d'environnement
+func substituteEnvVarsInString(content string) string {
+	// Regex pour matcher ${VAR_NAME}
+	re := regexp.MustCompile(`\$\{([^}]+)\}`)
+
+	return re.ReplaceAllStringFunc(content, func(match string) string {
+		// Extraire le nom de la variable (sans ${ et })
+		varName := match[2 : len(match)-1]
+		return GetEnvOrPanic(varName)
+	})
 }
 
 // GetEnvOrPanic gets the environment variable or panics if it is not found.

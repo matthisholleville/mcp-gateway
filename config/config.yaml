@@ -24,7 +24,7 @@ oauth:
   enabled: true
   provider: "okta"
   authorization_servers:
-    - "https://dev-1234567890.okta.com"
+    - "${OKTA_ISSUER}"
   bearer_methods_supported:
     - "header"
   scopes_supported:
@@ -32,8 +32,8 @@ oauth:
 
 # Okta
 okta:
-  issuer: "https://dev-1234567890.okta.com"
-  org_url: "https://dev-1234567890.okta.com"
+  issuer: "${OKTA_ISSUER}"
+  org_url: "${OKTA_ORG_URL}"
   client_id: "${OKTA_CLIENT_ID}"
   private_key: "${OKTA_PRIVATE_KEY}"
   private_key_id: "${OKTA_PRIVATE_KEY_ID}"
@@ -45,9 +45,28 @@ auth:
     # claim name:group name -> scope name
     "groups:Base": ["scope:1"]
   permissions:
-    ".*": ["scope:1"]
+    "*": ["scope:1"]
 
   options:
     scope_mode: "any" # OR logic. Any is the user has at least one of the scopes. All is the user has all the scopes.
     default_scope: null # deny by default
     enabled: true
+
+# Proxy
+proxy:
+  servers:
+    - name: "n8n"
+      type: "streamable-http"
+      connection:
+        url: "${N8N_URL}"
+        timeout: 30s
+      auth:
+        type: "header"
+        header: "x-n8n-key"
+        value: "${N8N_PROXY_KEY}"
+  proxy_config:
+    # Cache for tools and schemas to avoid repeated calls
+    cache_ttl: 300s # 5 minutes
+    heartbeat:
+      enabled: true
+      interval_seconds: 10

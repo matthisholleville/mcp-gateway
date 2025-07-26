@@ -25,6 +25,10 @@ func NewProvider(provider string, cfg *cfg.Cfg, logger *slog.Logger) (Provider, 
 	switch provider {
 	case "okta":
 		return &OktaProvider{
+			BaseProvider: BaseProvider{
+				authCfg: &cfg.Auth,
+				logger:  logger,
+			},
 			cfg:      &cfg.Okta,
 			oauthCfg: &cfg.OAuth,
 			authCfg:  &cfg.Auth,
@@ -46,6 +50,12 @@ func flattenClaims(claims map[string]interface{}) ([]string, error) {
 			for _, v := range v {
 				flattenedClaims = append(flattenedClaims, fmt.Sprintf("%s:%s", claim, v))
 			}
+		case []interface{}:
+			out := make([]string, len(v))
+			for i, v := range v {
+				out[i] = fmt.Sprintf("%s:%s", claim, v)
+			}
+			flattenedClaims = append(flattenedClaims, out...)
 		default:
 			return nil, fmt.Errorf("claim %s has unsupported type %T", claim, v)
 		}

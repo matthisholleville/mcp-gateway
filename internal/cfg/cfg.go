@@ -26,6 +26,39 @@ type Cfg struct {
 	Server Server `mapstructure:"server"`
 	Okta   Okta   `mapstructure:"okta"`
 	Auth   Auth   `mapstructure:"auth"`
+	Proxy  Proxy  `mapstructure:"proxy"`
+}
+
+type Proxy struct {
+	Servers     []ProxyServer `mapstructure:"servers"`
+	ProxyConfig ProxyConfig   `mapstructure:"proxy_config"`
+}
+
+type ProxyConfig struct {
+	Heartbeat Heartbeat `mapstructure:"heartbeat"`
+}
+
+type Heartbeat struct {
+	Enabled         bool `mapstructure:"enabled"`
+	IntervalSeconds int  `mapstructure:"interval_seconds"`
+}
+
+type ProxyServer struct {
+	Name       string          `mapstructure:"name"`
+	Type       string          `mapstructure:"type"`
+	Connection ProxyConnection `mapstructure:"connection"`
+	Auth       ProxyAuth       `mapstructure:"auth"`
+}
+
+type ProxyConnection struct {
+	URL     string `mapstructure:"url"`
+	Timeout string `mapstructure:"timeout"`
+}
+
+type ProxyAuth struct {
+	Type   string `mapstructure:"type"`
+	Header string `mapstructure:"header"`
+	Value  string `mapstructure:"value"`
 }
 
 type Auth struct {

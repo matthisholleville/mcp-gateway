@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"path/filepath"
+	"strings"
 
 	"github.com/matthisholleville/mcp-gateway/internal/cfg"
 )
@@ -22,16 +23,18 @@ func (b *BaseProvider) VerifyPermissions(toolName string, claims map[string]inte
 		return false
 	}
 
-	b.logger.InfoContext(ctx, "Flattened claims", slog.Any("claims", flattenedClaims))
+	b.logger.DebugContext(ctx, "Flattened claims", slog.Any("claims", flattenedClaims))
 
 	requiredScopes := b.getRequiredScopes(toolName)
 	if len(requiredScopes) == 0 {
 		return b.authCfg.Options.DefaultScope != nil
 	}
 
-	b.logger.InfoContext(ctx, "Required scopes", slog.Any("scopes", requiredScopes))
+	b.logger.DebugContext(ctx, "Required scopes", slog.Any("scopes", requiredScopes))
 
 	userScopes := b.getUserScopes(flattenedClaims)
+
+	b.logger.DebugContext(ctx, "User scopes", slog.Any("scopes", userScopes))
 	hasRequiredPermission := b.hasRequiredPermission(userScopes, requiredScopes, b.authCfg.Options.ScopeMode)
 
 	return hasRequiredPermission
@@ -59,6 +62,7 @@ func (b *BaseProvider) getRequiredScopes(toolName string) []string {
 func (b *BaseProvider) getUserScopes(flattenedClaims []string) []string {
 	scopeSet := make(map[string]bool)
 	for _, group := range flattenedClaims {
+		group = strings.ToLower(group)
 		if scopes, exists := b.authCfg.Mappings[group]; exists {
 			for _, scope := range scopes {
 				scopeSet[scope] = true

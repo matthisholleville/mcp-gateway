@@ -11,31 +11,40 @@ var (
 	ToolsCalledGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: defaultNamespace + "_tools_called",
-			Help: "Current tools called by name",
+			Help: "Current tools called by name and proxy",
 		},
-		[]string{"tool"},
+		[]string{"tool", "proxy"},
+	)
+
+	ListToolsGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: defaultNamespace + "_list_tools",
+			Help: "Current list tools by proxy",
+		},
+		[]string{"proxy"},
 	)
 
 	ToolsCallErrorsGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: defaultNamespace + "_tools_call_errors",
-			Help: "Current tools call errors by name",
+			Help: "Current tools call errors by name and proxy",
 		},
-		[]string{"tool"},
+		[]string{"tool", "proxy"},
 	)
 
 	ToolsCallSuccessGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: defaultNamespace + "_tools_call_success",
-			Help: "Current tools call success by name",
+			Help: "Current tools call success by name and proxy",
 		},
-		[]string{"tool"},
+		[]string{"tool", "proxy"},
 	)
 
 	CustomGaugeVecMetrics = []*prometheus.GaugeVec{
 		ToolsCalledGauge,
 		ToolsCallErrorsGauge,
 		ToolsCallSuccessGauge,
+		ListToolsGauge,
 	}
 
 	CustomCounterMetrics = []prometheus.Counter{}

@@ -22,6 +22,7 @@ import (
 	"github.com/matthisholleville/mcp-gateway/internal/cfg"
 	"github.com/matthisholleville/mcp-gateway/internal/metrics"
 	"github.com/matthisholleville/mcp-gateway/internal/oauth"
+	"github.com/matthisholleville/mcp-gateway/internal/proxy"
 )
 
 type Server struct {
@@ -164,12 +165,35 @@ func (s *Server) configureMCP() {
 		server.WithStateLess(true),
 	)
 
+	s.addProxyTools(mcpServer)
+
 	s.Router.GET("/mcp", echo.WrapHandler(serverConfig))
 	s.Router.HEAD("/mcp", echo.WrapHandler(serverConfig))
 	s.Router.OPTIONS("/mcp", func(c echo.Context) error {
 		return c.NoContent(http.StatusNoContent)
 	})
 	s.Router.POST("/mcp", echo.WrapHandler(serverConfig))
+}
+
+func (s *Server) addProxyTools(mcpServer *server.MCPServer) {
+	mcpProxy, err := proxy.NewProxy(&s.Cfg.Proxy, s.Logger)
+	if err != nil {
+		s.Logger.ErrorContext(context.Background(), "Failed to create MCP proxy", slog.Any("err", err))
+		panic(err)
+	}
+	for _, proxy := range *mcpProxy {
+		proxyTools, err := proxy.GetTools()
+		if err != nil {
+			s.Logger.ErrorContext(context.Background(), "Failed to get MCP proxy tools", slog.Any("err", err))
+			continue
+		}
+		for i := range proxyTools {
+			tool := proxyTools[i]
+			toolName := proxy.GetName() + ":" + tool.Name
+			tool.Name = toolName
+			mcpServer.AddTool(tool, proxy.CallTool)
+		}
+	}
 }
 
 // mcpHooks configures the MCP hooks
@@ -186,7 +210,8 @@ func (s *Server) mcpHooks() *server.Hooks {
 		method := message.Method
 		params := message.Params
 		args := message.GetArguments()
-		metrics.ToolsCalledGauge.WithLabelValues(params.Name).Inc()
+		proxyName, toolName := s.parseToolName(params.Name)
+		metrics.ToolsCalledGauge.WithLabelValues(toolName, proxyName).Inc()
 		logger.DebugContext(ctx, "Tool call started", "request_method", method, "tool_name", params.Name, "request_arguments", args)
 	})
 
@@ -207,9 +232,10 @@ func (s *Server) mcpHooks() *server.Hooks {
 		if !ok {
 			logger.ErrorContext(ctx, "Invalid request ID", slog.Any("request_id", id))
 		}
+		proxyName, toolName := s.parseToolName(message.Params.Name)
 		if result.IsError {
 			logger.ErrorContext(ctx, response, slog.String("toolName", message.Params.Name), slog.Float64("request_id", idFloat))
-			metrics.ToolsCallErrorsGauge.WithLabelValues(message.Params.Name).Inc()
+			metrics.ToolsCallErrorsGauge.WithLabelValues(toolName, proxyName).Inc()
 		} else {
 			logger.InfoContext(
 				ctx,
@@ -217,7 +243,7 @@ func (s *Server) mcpHooks() *server.Hooks {
 				slog.String("toolName", message.Params.Name),
 				slog.Float64("request_id", idFloat),
 			)
-			metrics.ToolsCallSuccessGauge.WithLabelValues(message.Params.Name).Inc()
+			metrics.ToolsCallSuccessGauge.WithLabelValues(toolName, proxyName).Inc()
 		}
 	})
 
@@ -228,10 +254,18 @@ func (s *Server) mcpHooks() *server.Hooks {
 			return
 		}
 		logger.InfoContext(ctx, "Before List Tools Hook", "request_id", id)
-		metrics.ToolsCalledGauge.WithLabelValues("list_tools").Inc()
+		metrics.ListToolsGauge.WithLabelValues("").Inc()
 	})
 
 	return hooks
+}
+
+func (s *Server) parseToolName(toolName string) (string, string) {
+	parts := strings.Split(toolName, ":")
+	if len(parts) != 2 {
+		return toolName, ""
+	}
+	return parts[0], parts[1]
 }
 
 // addGlobalMCPContext adds the global MCP context to the context
@@ -273,18 +307,25 @@ func (s *Server) configureAuthMiddleware() {
 				return s.unauth(c, "invalid_token", "Invalid token")
 			}
 
-			reqBody, err := io.ReadAll(c.Request().Body)
-			if err != nil {
-				s.Logger.ErrorContext(c.Request().Context(), "Failed to read request body", "error", err)
-				return s.unauth(c, "invalid_request", "Invalid request")
-			}
-			c.Request().Body = io.NopCloser(bytes.NewBuffer(reqBody))
+			const maxBodySize = 1 << 20 // 1 MiB
+
+			req := c.Request()
+			body := req.Body
+			req.Body = http.MaxBytesReader(c.Response(), body, maxBodySize)
+
+			var copyBuf bytes.Buffer
+			tee := io.TeeReader(req.Body, &copyBuf)
+
+			dec := json.NewDecoder(tee)
+
 			message := &mcp.CallToolRequest{}
-			err = json.Unmarshal(reqBody, message)
+			err = dec.Decode(message)
 			if err != nil {
 				s.Logger.ErrorContext(c.Request().Context(), "Failed to unmarshal request body", "error", err)
 				return s.unauth(c, "invalid_request", "Invalid request")
 			}
+
+			req.Body = io.NopCloser(&copyBuf)
 
 			if message.Method != "tools/call" {
 				return next(c)
