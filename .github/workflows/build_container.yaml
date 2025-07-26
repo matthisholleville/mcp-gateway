@@ -96,32 +96,3 @@ jobs:
             RELEASE_VERSION=dev-${{ env.DATETIME }}
             BUILD_TIME=${{ env.BUILD_TIME }}
             REVISION=${{ env.GIT_SHA }}
-
-  build_init_image:
-    name: Build Init Container Image
-    needs: prepare_ci_run
-    runs-on: ubuntu-latest
-    env:
-      BRANCH: ${{ needs.prepare_ci_run.outputs.BRANCH }}
-      DATETIME: ${{ needs.prepare_ci_run.outputs.DATETIME }}
-      BUILD_TIME: ${{ needs.prepare_ci_run.outputs.BUILD_TIME }}
-      GIT_SHA: ${{ needs.prepare_ci_run.outputs.GIT_SHA }}
-      RELEASE_REGISTRY: "localhost:5000/mcp-gateway"
-    steps:
-      - name: Check out code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3
-        
-      - name: Build Docker Image
-        uses: ./.github/actions/package-docker-image
-        with:
-          build_context_directory: .
-          build_image_directory: ./Dockerfile.init
-          container_target_platforms: linux/amd64,linux/arm64
-          container_image_name: ${{ env.IMAGE_NAME }}-init
-          container_image_tag: dev-${{ env.DATETIME }}
-          container_image_push: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}

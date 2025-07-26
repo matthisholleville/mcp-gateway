@@ -7,6 +7,11 @@ on:
       - '[0-9]+.[0-9]+.x'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  issues:   write
+  pull-requests: write
+
 defaults:
   run:
     shell: bash
@@ -28,7 +33,7 @@ jobs:
       - uses: google-github-actions/release-please-action@e4dc86ba9405554aeba3c6bb2d169500e7d3b4ee # v4.1.1
         id: release
         with:
-          token: ${{secrets.GITHUB_TOKEN}}
+          token: ${{secrets.RELEASE_TOKEN}}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
