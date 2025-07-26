@@ -85,6 +85,11 @@ func (s *Server) configureRouter() {
 
 // registerHealthcheckRoutes registers the healthcheck routes
 func (s *Server) registerHealthcheckRoutes() {
+	s.Live = new(int32)
+	s.Ready = new(int32)
+	*s.Live = 1
+	*s.Ready = 1
+
 	s.Router.GET("/live", echo.HandlerFunc(func(c echo.Context) error {
 		if atomic.LoadInt32(s.Live) == 1 {
 			return echo.NewHTTPError(http.StatusOK, "OK")
