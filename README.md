@@ -72,6 +72,9 @@ MCP Gateway serves as a **unified entry point** for multiple MCP servers, allowi
 ### Using Docker (Recommended)
 
 ```bash
+# Use dev image if you want early feature
+# docker pull ghcr.io/matthisholleville/mcp-gateway-dev:latest
+
 # Pull the latest image
 docker pull ghcr.io/matthisholleville/mcp-gateway:latest
 
