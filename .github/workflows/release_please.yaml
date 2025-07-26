@@ -4,12 +4,12 @@ on:
   push:
     branches:
       - main
-      - '[0-9]+.[0-9]+.x'
+      - "[0-9]+.[0-9]+.x"
   workflow_dispatch:
 
 permissions:
   contents: write
-  issues:   write
+  issues: write
   pull-requests: write
 
 defaults:
@@ -19,8 +19,8 @@ defaults:
 jobs:
   release-please:
     permissions:
-      contents: write  # for google-github-actions/release-please-action to create release commit
-      pull-requests: write  # for google-github-actions/release-please-action to create release PR
+      contents: write # for google-github-actions/release-please-action to create release commit
+      pull-requests: write # for google-github-actions/release-please-action to create release PR
     runs-on: ubuntu-latest
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
@@ -29,7 +29,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-     
+
       - uses: google-github-actions/release-please-action@e4dc86ba9405554aeba3c6bb2d169500e7d3b4ee # v4.1.1
         id: release
         with:
@@ -66,7 +66,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5
         with:
-          go-version: '1.23'
+          go-version: "1.23"
       - name: Download Syft
         uses: anchore/sbom-action/download-syft@55dc4ee22412511ee8c3142cbea40418e6cec693 # v0.17.8
       - name: Run GoReleaser
@@ -77,7 +77,45 @@ jobs:
           version: latest
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+  build-container-dev:
+    if: needs.release-please.outputs.releases_created != 'true'
+    needs:
+      - release-please
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    env:
+      IMAGE_NAME: ghcr.io/matthisholleville/mcp-gateway-dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+        with:
+          registry: "ghcr.io"
+          username: ${{ github.actor }}
+          password: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Build & Push Web Docker Image
+        uses: ./.github/actions/package-docker-image
+        with:
+          build_context_directory: .
+          build_image_directory: ./Dockerfile
+          container_target_platforms: linux/amd64,linux/arm64
+          container_image_name: ${{ env.IMAGE_NAME }}
+          container_image_tag_latest: true
+          container_image_tag: dev-${{ github.sha }}
+          container_image_push: true
+          github_token: ${{ secrets.RELEASE_TOKEN }}
 
   build-container:
     if: needs.release-please.outputs.releases_created == 'true'
@@ -109,21 +147,9 @@ jobs:
         uses: ./.github/actions/package-docker-image
         with:
           build_context_directory: .
-          build_image_directory: ./Dockerfile.init
+          build_image_directory: ./Dockerfile
           container_target_platforms: linux/amd64,linux/arm64
           container_image_name: ${{ env.IMAGE_NAME }}
-          container_image_tag_latest: true
-          container_image_tag: ${{ needs.release-please.outputs.tag_name }}
-          container_image_push: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & Push Init Docker Image
-        uses: ./.github/actions/package-docker-image
-        with:
-          build_context_directory: .
-          build_image_directory: ./Dockerfile.init
-          container_target_platforms: linux/amd64,linux/arm64
-          container_image_name: ${{ env.IMAGE_NAME }}-init
           container_image_tag_latest: true
           container_image_tag: ${{ needs.release-please.outputs.tag_name }}
           container_image_push: true
