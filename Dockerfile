@@ -28,7 +28,7 @@ RUN addgroup -S app \
 WORKDIR /home/app
 
 COPY --from=builder /mcp-gateway/bin/mcp-gateway .
-COPY --from=builder /mcp-gateway/config.yaml ./config.yaml
+COPY --from=builder /mcp-gateway/config/config.yaml ./config.yaml
 
 RUN chown -R app:app ./
 

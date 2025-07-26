@@ -1,0 +1,68 @@
+version: 2
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+before:
+  hooks:
+    - go mod download
+    - go run github.com/steebchen/prisma-client-go generate
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.Date={{.CommitDate}}
+
+nfpms:
+  - file_name_template: "{{ .ProjectName }}_{{ .Arch }}"
+    maintainer: "MCP Gateway Maintainers <matthish29@gmail.com>"
+    homepage: https://github.com/matthisholleville/mcp-gateway
+    description: >-
+      MCP Gateway is a flexible and extensible proxy gateway for MCP servers, providing enterprise-grade middleware capabilities including authentication, authorization, rate limiting (coming soon), and observability.
+    license: "Apache-2.0"
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/bin
+    section: utils
+    contents:
+      - src: ./LICENSE
+        dst: /usr/share/doc/mcp-gateway/copyright
+        file_info:
+          mode: 0644
+
+sboms:
+  - artifacts: archive
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of uname.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+  # skip: true
+# The lines beneath this are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj

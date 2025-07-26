@@ -1,0 +1,72 @@
+name: Package Docker Image
+description: "Package a Docker image"
+
+inputs:
+  registry:
+    description: "The Docker registry to push the image to (e.g., Docker Hub)"
+    required: false
+    default: "ghcr.io/matthisholleville/"
+  build_context_directory:
+    description: "Directory to use as build context"
+    default: "."
+  build_image_directory:
+    description: "Path to the Dockerfile"
+    default: "./Dockerfile"
+  container_target_platforms:
+    description: "Target platforms for the container (e.g., linux/amd64)"
+    default: "linux/amd64,linux/arm64"
+  container_image_name:
+    description: "Name of the image to build"
+    required: true
+  container_image_tag:
+    description: "Tag of the image to build"
+    required: true
+  container_image_tag_latest:
+    description: "Enable this option to also tag the image with 'latest'"
+    default: "false"
+  container_image_push:
+    description: "Enable this option to push the image to the registry"
+    default: "false"
+  container_build_args:
+    description: "Additional build arguments"
+    default: ""
+  github_token:
+    description: "GitHub token"
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+      with:
+        registry: "ghcr.io"
+        username: ${{ github.actor }}
+        password: ${{ inputs.github_token }}
+    - name: Set up Docker Buildx
+      id: buildx
+      uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3
+
+    - name: Generate tags
+      id: generate-tags
+      shell: bash
+      run: |
+        if [[ ${{ inputs.container_image_tag_latest }} == true ]]; then
+          TAGS="${{ inputs.container_image_name }}:${{ inputs.container_image_tag }},${{ inputs.container_image_name }}:latest"
+        else
+          TAGS="${{ inputs.container_image_name }}:${{ inputs.container_image_tag }}"
+        fi
+        echo tags=$TAGS >> $GITHUB_OUTPUT
+
+    - name: Build Docker Image
+      uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v6
+      id: build_docker_image
+      with:
+        context: ${{ inputs.build_context_directory }}
+        file: ${{ inputs.build_image_directory }}
+        platforms: ${{ inputs.container_target_platforms }}
+        tags: ${{ steps.generate-tags.outputs.tags }}
+        build-args: ${{ inputs.container_build_args }}
+        builder: ${{ steps.buildx.outputs.name }}
+        push: "${{ inputs.container_image_push }}"
+        cache-from: type=gha,scope=${{ github.ref_name }}-${{ inputs.container_image_name }}
+        cache-to: type=gha,scope=${{ github.ref_name }}-${{ inputs.container_image_name }}
