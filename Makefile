@@ -24,7 +24,7 @@ help:
 ## serve: Run the application in server mode with debug configuration
 serve:
 	@echo "$(YELLOW)Starting server in debug mode...$(RESET)"
-	go run main.go serve --log-format=raw --log-level=debug --config=$(CONFIG_FILE)
+	go run main.go serve --log-format=text --log-level=debug
 
 ## dev: Alias for serve (for development)
 dev: serve

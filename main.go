@@ -1,7 +1,18 @@
 package main
 
-import "github.com/matthisholleville/mcp-gateway/cmd"
+import (
+	"os"
+
+	"github.com/matthisholleville/mcp-gateway/cmd"
+	"github.com/matthisholleville/mcp-gateway/cmd/serve"
+)
 
 func main() {
-	cmd.Execute()
+	rootCmd := cmd.NewRootCommand()
+
+	rootCmd.AddCommand(serve.NewRunCommand())
+
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }

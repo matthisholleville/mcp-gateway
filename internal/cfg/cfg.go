@@ -1,126 +1,151 @@
-// Package cfg provides the configuration for the application.
 package cfg
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"log/slog"
-	"os"
-	"reflect"
-
-	"github.com/spf13/viper"
+	"time"
 )
 
-type Cors struct {
-	Enabled          bool     `mapstructure:"enabled"`
-	AllowedOrigins   []string `mapstructure:"allowed_origins"`
-	AllowedMethods   []string `mapstructure:"allowed_methods"`
-	AllowedHeaders   []string `mapstructure:"allowed_headers"`
-	AllowCredentials bool     `mapstructure:"allow_credentials"`
+type Config struct {
+	HTTP          *HTTPConfig
+	Log           *LogConfig
+	OAuth         *OAuthConfig
+	Proxy         *ProxyConfig
+	AuthProvider  *AuthProviderConfig
+	BackendConfig *BackendConfig
 }
 
-type Cfg struct {
-	Cors   Cors   `mapstructure:"cors"`
-	OAuth  OAuth  `mapstructure:"oauth"`
-	Server Server `mapstructure:"server"`
-	Okta   Okta   `mapstructure:"okta"`
-	Auth   Auth   `mapstructure:"auth"`
-	Proxy  Proxy  `mapstructure:"proxy"`
+type HTTPConfig struct {
+	Addr        string
+	CORS        *CORSConfig
+	AdminAPIKey string
 }
 
-type Proxy struct {
-	Servers     []ProxyServer `mapstructure:"servers"`
-	ProxyConfig ProxyConfig   `mapstructure:"proxy_config"`
+type LogConfig struct {
+	// Format is the log format to use in the log output (e.g. 'text' or 'json')
+	Format string
+
+	// Level is the log level to use in the log output (e.g. 'none', 'debug', or 'info')
+	Level string
+
+	// Format of the timestamp in the log output (e.g. 'Unix'(default) or 'ISO8601')
+	TimestampFormat string
 }
 
 type ProxyConfig struct {
-	Heartbeat Heartbeat `mapstructure:"heartbeat"`
+	CacheTTL  time.Duration
+	Heartbeat *HeartbeatConfig
 }
 
-type Heartbeat struct {
-	Enabled         bool `mapstructure:"enabled"`
-	IntervalSeconds int  `mapstructure:"interval_seconds"`
+type HeartbeatConfig struct {
+	Enabled         bool
+	IntervalSeconds time.Duration
+}
+type CORSConfig struct {
+	Enabled          bool
+	AllowedOrigins   []string
+	AllowedMethods   []string
+	AllowedHeaders   []string
+	AllowCredentials bool
 }
 
-type ProxyServer struct {
-	Name       string          `mapstructure:"name"`
-	Type       string          `mapstructure:"type"`
-	Connection ProxyConnection `mapstructure:"connection"`
-	Auth       ProxyAuth       `mapstructure:"auth"`
+type OAuthConfig struct {
+	Enabled                bool
+	AuthorizationServers   []string
+	BearerMethodsSupported []string
+	ScopesSupported        []string
 }
 
-type ProxyConnection struct {
-	URL     string `mapstructure:"url"`
-	Timeout string `mapstructure:"timeout"`
+type AuthProviderConfig struct {
+	Enabled  bool
+	Name     string
+	Firebase *FirebaseConfig
+	Okta     *OktaConfig
 }
 
-type ProxyAuth struct {
-	Type   string `mapstructure:"type"`
-	Header string `mapstructure:"header"`
-	Value  string `mapstructure:"value"`
+type FirebaseConfig struct {
+	ProjectID string
 }
 
-type Auth struct {
-	Claims      []string            `mapstructure:"claims"`
-	Mappings    map[string][]string `mapstructure:"mappings"`
-	Permissions map[string][]string `mapstructure:"permissions"`
-	Options     Options             `mapstructure:"options"`
+type OktaConfig struct {
+	Issuer       string
+	OrgURL       string
+	ClientID     string
+	PrivateKey   string `json:"-"` // private field, won't be logged
+	PrivateKeyID string `json:"-"` // private field, won't be logged
 }
 
-type Options struct {
-	ScopeMode    string  `mapstructure:"scope_mode"`
-	DefaultScope *string `mapstructure:"default_scope"`
-	Enabled      bool    `mapstructure:"enabled"`
+type BackendConfig struct {
+	// Engine is the auth backend engine to use (e.g. 'memory', 'postgres')
+	Engine string
+	URI    string `json:"-"` // private field, won't be logged
+
+	// MaxOpenConns is the maximum number of open connections to the database.
+	MaxOpenConns int
+
+	// MaxIdleConns is the maximum number of connections to the datastore in the idle connection
+	// pool.
+	MaxIdleConns int
+
+	// ConnMaxIdleTime is the maximum amount of time a connection to the datastore may be idle.
+	ConnMaxIdleTime time.Duration
+
+	// ConnMaxLifetime is the maximum amount of time a connection to the datastore may be reused.
+	ConnMaxLifetime time.Duration
 }
 
-type Server struct {
-	URL string `mapstructure:"url"`
-}
-
-type OAuth struct {
-	Enabled                bool     `mapstructure:"enabled"`
-	Provider               string   `mapstructure:"provider"`
-	AuthorizationServers   []string `mapstructure:"authorization_servers"`
-	BearerMethodsSupported []string `mapstructure:"bearer_methods_supported"`
-	ScopesSupported        []string `mapstructure:"scopes_supported"`
-}
-
-type Okta struct {
-	Issuer       string `mapstructure:"issuer"`
-	OrgURL       string `mapstructure:"org_url"`
-	ClientID     string `mapstructure:"client_id"`
-	PrivateKey   string `mapstructure:"private_key"`
-	PrivateKeyID string `mapstructure:"private_key_id"`
-}
-
-func WriteInitConfiguration(logger *slog.Logger) {
-	// Write the default configuration to a file
-	if err := viper.SafeWriteConfig(); err != nil {
-		var configFileAlreadyExistsErr viper.ConfigFileAlreadyExistsError
-		if errors.As(err, &configFileAlreadyExistsErr) {
-			logger.DebugContext(context.Background(), "Configuration file already exists. No changes made.")
-		} else {
-			logger.ErrorContext(context.Background(), fmt.Sprintf("Unable to write configuration file: %v", err))
-			os.Exit(1)
-		}
-	} else {
-		logger.InfoContext(context.Background(), "Default configuration written successfully")
+func DefaultConfig() *Config {
+	return &Config{
+		HTTP: &HTTPConfig{
+			Addr: ":8082",
+			CORS: &CORSConfig{
+				Enabled:          true,
+				AllowedOrigins:   []string{"*"},
+				AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+				AllowedHeaders:   []string{"Content-Type", "Authorization"},
+				AllowCredentials: true,
+			},
+			AdminAPIKey: "change-me",
+		},
+		Log: &LogConfig{
+			Format: "text",
+			Level:  "info",
+		},
+		Proxy: &ProxyConfig{
+			CacheTTL: 10 * time.Second,
+			Heartbeat: &HeartbeatConfig{
+				Enabled:         true,
+				IntervalSeconds: 10 * time.Second,
+			},
+		},
+		OAuth: &OAuthConfig{
+			Enabled: false,
+		},
+		AuthProvider: &AuthProviderConfig{
+			Enabled: false,
+			Name:    "",
+			Firebase: &FirebaseConfig{
+				ProjectID: "change-me",
+			},
+			Okta: &OktaConfig{
+				Issuer: "",
+				OrgURL: "",
+			},
+		},
+		BackendConfig: &BackendConfig{
+			Engine: "memory",
+		},
 	}
 }
 
-func LoadCfg(logger *slog.Logger) *Cfg {
-	var config Cfg
-	err := viper.Unmarshal(&config)
-	if err != nil {
-		logger.ErrorContext(context.Background(), "error on fetching configuration file", slog.Any("error", err))
-		os.Exit(1)
+func (cfg *Config) Verify() error {
+
+	if cfg.Proxy.CacheTTL <= 5*time.Second {
+		return fmt.Errorf("proxy cache TTL must be greater than 5 seconds")
 	}
 
-	if reflect.DeepEqual(config, Cfg{}) {
-		logger.ErrorContext(context.Background(), "Configuration is empty")
-		os.Exit(1)
+	if cfg.Proxy.Heartbeat.IntervalSeconds <= 5*time.Second {
+		return fmt.Errorf("proxy heartbeat interval must be greater than 5 seconds")
 	}
 
-	return &config
+	return nil
 }
