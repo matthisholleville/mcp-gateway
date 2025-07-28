@@ -1,0 +1,427 @@
+basePath: /
+definitions:
+  storage.ClaimToRolesConfig:
+    properties:
+      claim_key:
+        type: string
+      claim_value:
+        type: string
+      roles:
+        items:
+          type: string
+        type: array
+    type: object
+  storage.ConnectionConfig:
+    properties:
+      timeout:
+        $ref: '#/definitions/time.Duration'
+      url:
+        type: string
+    type: object
+  storage.ObjectType:
+    enum:
+    - tools
+    - '*'
+    type: string
+    x-enum-varnames:
+    - ObjectTypeTools
+    - ObjectTypeAll
+  storage.PermissionConfig:
+    properties:
+      object_name:
+        type: string
+      object_type:
+        $ref: '#/definitions/storage.ObjectType'
+      proxy:
+        type: string
+    type: object
+  storage.ProxyAuthConfig:
+    properties:
+      header:
+        type: string
+      type:
+        type: string
+      value:
+        type: string
+    type: object
+  storage.ProxyConfig:
+    properties:
+      auth:
+        $ref: '#/definitions/storage.ProxyAuthConfig'
+      connection:
+        $ref: '#/definitions/storage.ConnectionConfig'
+      name:
+        type: string
+      type:
+        $ref: '#/definitions/storage.ProxyType'
+    type: object
+  storage.ProxyType:
+    enum:
+    - streamable-http
+    type: string
+    x-enum-varnames:
+    - ProxyTypeStreamableHTTP
+  storage.RoleConfig:
+    properties:
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/storage.PermissionConfig'
+        type: array
+    type: object
+  time.Duration:
+    enum:
+    - -9223372036854775808
+    - 9223372036854775807
+    - 1
+    - 1000
+    - 1000000
+    - 1000000000
+    - 60000000000
+    - 3600000000000
+    type: integer
+    x-enum-varnames:
+    - minDuration
+    - maxDuration
+    - Nanosecond
+    - Microsecond
+    - Millisecond
+    - Second
+    - Minute
+    - Hour
+info:
+  contact:
+    name: Source Code
+    url: https://github.com/matthisholleville/mcp-gateway
+  description: This is the MCP Gateway API documentation.
+  title: MCP Gateway API
+  version: "1.0"
+paths:
+  /v1/admin/claim-to-roles:
+    get:
+      consumes:
+      - application/json
+      description: Get all claim to roles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/storage.ClaimToRolesConfig'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Authentication: []
+      summary: Get all claim to roles
+      tags:
+      - claim to roles
+    put:
+      consumes:
+      - application/json
+      description: Upsert a claim to role
+      parameters:
+      - description: Claim to role
+        in: body
+        name: claimToRole
+        required: true
+        schema:
+          $ref: '#/definitions/storage.ClaimToRolesConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storage.ClaimToRolesConfig'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Authentication: []
+      summary: Upsert a claim to role
+      tags:
+      - claim to roles
+  /v1/admin/claim-to-roles/{claimKey}/{claimValue}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a claim to role
+      parameters:
+      - description: Claim key
+        in: path
+        name: claimKey
+        required: true
+        type: string
+      - description: Claim value
+        in: path
+        name: claimValue
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Authentication: []
+      summary: Delete a claim to role
+      tags:
+      - claim to roles
+  /v1/admin/proxies:
+    get:
+      consumes:
+      - application/json
+      description: Get all proxies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/storage.ProxyConfig'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Authentication: []
+      summary: Get all proxies
+      tags:
+      - proxies
+  /v1/admin/proxies/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a proxy
+      parameters:
+      - description: Proxy name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Authentication: []
+      summary: Delete a proxy
+      tags:
+      - proxies
+    get:
+      consumes:
+      - application/json
+      description: Get a proxy
+      parameters:
+      - description: Proxy name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storage.ProxyConfig'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Authentication: []
+      summary: Get a proxy
+      tags:
+      - proxies
+    put:
+      consumes:
+      - application/json
+      description: Upsert a proxy
+      parameters:
+      - description: Proxy
+        in: body
+        name: proxy
+        required: true
+        schema:
+          $ref: '#/definitions/storage.ProxyConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storage.ProxyConfig'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Authentication: []
+      summary: Upsert a proxy
+      tags:
+      - proxies
+  /v1/admin/roles:
+    get:
+      consumes:
+      - application/json
+      description: Get all roles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/storage.RoleConfig'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Authentication: []
+      summary: Get all roles
+      tags:
+      - roles
+    put:
+      consumes:
+      - application/json
+      description: Upsert a role
+      parameters:
+      - description: Role
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/storage.RoleConfig'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storage.RoleConfig'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Authentication: []
+      summary: Upsert a role
+      tags:
+      - roles
+  /v1/admin/roles/{role}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a role
+      parameters:
+      - description: Role
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Authentication: []
+      summary: Delete a role
+      tags:
+      - roles
+schemes:
+- http
+- https
+securityDefinitions:
+  Authentication:
+    in: header
+    name: X-API-Key
+    type: apiKey
+swagger: "2.0"
