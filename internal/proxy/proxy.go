@@ -4,7 +4,6 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -12,7 +11,9 @@ import (
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/matthisholleville/mcp-gateway/internal/cfg"
+	"github.com/matthisholleville/mcp-gateway/internal/storage"
+	"github.com/matthisholleville/mcp-gateway/pkg/logger"
+	"go.uber.org/zap"
 )
 
 var (
@@ -24,8 +25,8 @@ var (
 
 type proxy struct {
 	name   string
-	cfg    *cfg.ProxyServer
-	logger *slog.Logger
+	cfg    *storage.ProxyConfig
+	logger logger.Logger
 	client *client.Client
 	mu     sync.Mutex
 }
@@ -38,24 +39,20 @@ type proxyInterface interface {
 
 var _ proxyInterface = &proxy{}
 
-func NewProxy(proxyCfg *cfg.Proxy, logger *slog.Logger) (*[]proxyInterface, error) {
+func NewProxy(proxyCfg *[]storage.ProxyConfig, logger logger.Logger) (*[]proxyInterface, error) {
 	proxies := &[]proxyInterface{}
 
-	for _, srv := range proxyCfg.Servers {
+	for _, srv := range *proxyCfg {
 		cfgCopy := srv
 		p := &proxy{
 			name:   cfgCopy.Name,
 			cfg:    &cfgCopy,
-			logger: logger.With(slog.String("mcp_proxy", cfgCopy.Name)),
+			logger: logger.With(zap.String("mcp_proxy", cfgCopy.Name)),
 		}
 
 		if err := p.ensureConnected(context.Background()); err != nil {
-			logger.ErrorContext(context.Background(), "unable to connect to MCP server", slog.String("proxy", cfgCopy.Name), slog.Any("err", err))
+			logger.Error("unable to connect to MCP server", zap.String("proxy", cfgCopy.Name), zap.Error(err))
 			continue
-		}
-
-		if proxyCfg.ProxyConfig.Heartbeat.Enabled {
-			go p.startHeartbeat(time.Duration(proxyCfg.ProxyConfig.Heartbeat.IntervalSeconds) * time.Second)
 		}
 
 		*proxies = append(*proxies, p)
@@ -107,8 +104,8 @@ func (p *proxy) ensureConnected(ctx context.Context) error {
 			return nil
 		}
 		p.logger.Warn("dial failed, retrying...",
-			slog.Int("attempt", i+1),
-			slog.Any("err", err))
+			zap.Int("attempt", i+1),
+			zap.Error(err))
 		time.Sleep(b)
 		b *= 2
 		if b > maxBackoff {
@@ -130,7 +127,7 @@ func (p *proxy) CallTool(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 		return res, err
 	}
 
-	p.logger.Warn("transient error, forcing reconnect", slog.Any("err", err))
+	p.logger.Warn("transient error, forcing reconnect", zap.Error(err))
 	p.resetClient()
 
 	if err := p.ensureConnected(ctx); err != nil {
@@ -178,10 +175,10 @@ func (p *proxy) startHeartbeat(interval time.Duration) {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		p.logger.Debug("heartbeat...", slog.String("interval", interval.String()), slog.String("proxy", p.name))
+		p.logger.Debug("heartbeat...", zap.String("interval", interval.String()), zap.String("proxy", p.name))
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		if err := p.ensureConnected(ctx); err != nil {
-			p.logger.Warn("heartbeat failed", slog.Any("err", err))
+			p.logger.Warn("heartbeat failed", zap.Error(err))
 		}
 		cancel()
 	}
@@ -191,7 +188,7 @@ func (p *proxy) GetName() string {
 	return p.name
 }
 
-func openStreamableHTTPProxy(proxyConfig *cfg.ProxyServer, logger *slog.Logger) (*transport.StreamableHTTP, error) {
+func openStreamableHTTPProxy(proxyConfig *storage.ProxyConfig, logger logger.Logger) (*transport.StreamableHTTP, error) {
 	ctx := context.Background()
 	endpoint := proxyConfig.Connection.URL
 
@@ -201,13 +198,13 @@ func openStreamableHTTPProxy(proxyConfig *cfg.ProxyServer, logger *slog.Logger) 
 	}
 
 	timeout := defaultTimeout
-	if proxyConfig.Connection.Timeout != "" {
-		if t, err := time.ParseDuration(proxyConfig.Connection.Timeout); err == nil {
-			timeout = t
-		} else {
-			logger.ErrorContext(ctx, "Failed to parse timeout", slog.Any("err", err))
-		}
-	}
+	// if proxyConfig.Connection.Timeout != 0 {
+	// 	if t, err := time.ParseDuration(proxyConfig.Connection.Timeout.String()); err == nil {
+	// 		timeout = t
+	// 	} else {
+	// 		logger.Error("Failed to parse timeout", zap.Error(err))
+	// 	}
+	// }
 
 	httpTransport, err := transport.NewStreamableHTTP(
 		endpoint,
