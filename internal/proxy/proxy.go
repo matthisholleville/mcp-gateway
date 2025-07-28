@@ -67,7 +67,7 @@ func (p *proxy) dial(ctx context.Context) error {
 		return err
 	}
 
-	cli := client.NewClient(tr) // wrap du transport
+	cli := client.NewClient(tr) // transport wrapper
 
 	// handshake MCP/initialize
 	_, err = cli.Initialize(ctx, mcp.InitializeRequest{

@@ -4,17 +4,27 @@
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
 
-A **flexible and extensible proxy gateway** for [MCP (Model Context Protocol)](https://modelcontextprotocol.io) servers, providing enterprise-grade middleware capabilities including authentication, authorization, rate limiting (coming soon), and observability.
+A **flexible and extensible proxy gateway** for [MCP (Model Context Protocol)](https://modelcontextprotocol.io) servers, providing enterprise-grade middleware capabilities including authentication, authorization, rate limiting, and observability.
 
-## 🚀 Why MCP Gateway?
+## 🚀 Features
 
-MCP Gateway acts as a centralized proxy that sits between your AI applications and MCP servers, providing:
+### 🔐 Authentication & Authorization
+- **Multiple Auth Providers**: Firebase Authentication, Okta OAuth2/JWT
+- **Role-Based Permissions**: Fine-grained tool access control
+- **Claim-to-Role Mapping**: Flexible user permission assignment
+- **JWT Token Verification**: Secure token validation
 
-- **🔐 Security First**: OAuth2/JWT authentication with fine-grained permissions
-- **📊 Enterprise Observability**: Built-in Prometheus metrics and structured logging
-- **🔄 High Availability**: Automatic reconnection, heartbeat monitoring, and resilient proxy
-- **⚙️ Flexible Configuration**: Support for multiple MCP servers with individual authentication
-- **📈 Production Ready**: Docker support, graceful shutdown, and comprehensive error handling
+### 📊 Enterprise Ready
+- **Multiple Storage Backends**: Memory (dev), PostgreSQL (coming soon)
+- **RESTful Admin API**: Dynamic configuration management
+- **Prometheus Metrics**: Built-in observability
+- **Structured Logging**: JSON and text output formats
+- **Health Endpoints**: Container orchestration support
+
+### ⚙️ Flexible Configuration
+- **YAML Configuration**: Environment variable substitution
+- **CLI Flags**: Override any configuration option
+- **Hot Configuration**: Runtime proxy/role management via API
 
 ## 🏗️ Architecture
 
@@ -23,199 +33,183 @@ MCP Gateway acts as a centralized proxy that sits between your AI applications a
 │   AI Client     │───▶│  MCP Gateway    │───▶│   MCP Server    │
 │ (Claude, etc.)  │    │                 │    │  (n8n, etc.)    │
 └─────────────────┘    │  ┌───────────┐  │    └─────────────────┘
-                       │  │   Auth    │  │
-                       │  │   CORS    │  │    ┌─────────────────┐
-                       │  │ Metrics   │  │───▶│ Another Server  │
-                       │  │  Cache    │  │    └─────────────────┘
+                       │  │Firebase/  │  │
+                       │  │Okta Auth  │  │    ┌─────────────────┐
+                       │  │  Roles    │  │───▶│ Another Server  │
+                       │  │ Metrics   │  │    └─────────────────┘
                        │  └───────────┘  │
                        └─────────────────┘
 ```
 
-## ✨ Key Features
-
-### 🔒 Authentication & Authorization
-- **OAuth2/JWT Integration**: Seamless integration with identity providers
-- **Fine-grained Permissions**: Tool-level access control based on user scopes and groups
-- **Flexible Claim Mapping**: Map JWT claims to internal permission scopes
-
-**Supported Auth Providers:**
-- ✅ **Okta** - Full OAuth2/JWT support with claim mapping
-- 🔄 More providers coming soon (contributions welcome!)
-
-## 🔧 Usage Examples
-
-MCP Gateway serves as a **unified entry point** for multiple MCP servers, allowing you to:
-- **Centralize access** to all your MCP tools through a single endpoint
-- **Unify authentication** across different backend servers 
-- **Namespace tools** to avoid conflicts between servers (`server:tool_name`)
-- **Apply consistent security policies** regardless of the backend implementation
-
-### 🛠️ MCP Proxy Capabilities
-- **Multi-Server Support**: Proxy requests to multiple MCP servers simultaneously
-- **Tool Namespacing**: Automatic prefixing to avoid naming conflicts (`server:tool_name`)
-- **Connection Management**: Automatic reconnection and connection pooling
-- **Heartbeat Monitoring**: Configurable health checks for backend servers
-
-### 📊 Observability & Monitoring
-- **Prometheus Metrics**: Built-in metrics for tools called, errors, and performance
-- **Structured Logging**: JSON and text logging with configurable levels
-- **Health Endpoints**: `/live` and `/ready` endpoints for container orchestration
-- **Request Tracing**: Correlation IDs for request tracking
-
-### ⚡ Performance & Reliability
-- **Periodic Tool Discovery**: Regular re-interrogation of tools exposed by proxied servers
-- **Error Handling**: Retry logic with exponential backoff
-- **Graceful Shutdown**: Clean termination of connections and requests
-
 ## 🚀 Quick Start
 
-### Using Docker (Recommended)
+### Using Go (Development)
 
 ```bash
-# Use dev image if you want early feature
-# docker pull ghcr.io/matthisholleville/mcp-gateway-dev:latest
+# Clone and run with Firebase
+git clone https://github.com/matthisholleville/mcp-gateway.git
+cd mcp-gateway
 
+# Run with Firebase authentication
+go run main.go serve \
+  --log-format=text \
+  --log-level=debug \
+  --auth-provider-enabled=true \
+  --auth-provider-name=firebase \
+  --firebase-project-id=your-project-id \
+  --oauth-enabled=true \
+  --oauth-authorization-servers=https://securetoken.google.com/your-project-id \
+  --oauth-bearer-methods-supported=Bearer \
+  --oauth-scopes-supported=openid,email,profile
+```
+
+### Using Docker
+
+```bash
 # Pull the latest image
 docker pull ghcr.io/matthisholleville/mcp-gateway:latest
 
 # Run with environment variables
 docker run -p 8082:8082 \
-  -e OKTA_ISSUER="https://your-okta-domain.okta.com/oauth2/default" \
-  -e OKTA_ORG_URL="https://your-okta-domain.okta.com" \
-  -e OKTA_CLIENT_ID="your-client-id" \
-  -e OKTA_PRIVATE_KEY="your-private-key" \
-  -e OKTA_PRIVATE_KEY_ID="your-key-id" \
-  -e N8N_URL="http://your-n8n-instance:5678" \
-  -e N8N_PROXY_KEY="your-n8n-api-key" \
+  -e MCP_GATEWAY_AUTH_PROVIDER_ENABLED=true \
+  -e MCP_GATEWAY_AUTH_PROVIDER_NAME=firebase \
+  -e MCP_GATEWAY_FIREBASE_PROJECT_ID=your-project-id \
+  -e MCP_GATEWAY_OAUTH_ENABLED=true \
   ghcr.io/matthisholleville/mcp-gateway:latest serve
 ```
 
-### Using Go
+### Using Helm
 
 ```bash
-# Install
-go install github.com/matthisholleville/mcp-gateway@latest
-
-# Run
-export OKTA_ISSUER="https://your-okta-domain.okta.com/oauth2/default"
-export N8N_URL="http://localhost:5678"
-# ... other environment variables
-mcp-gateway serve
+helm repo add mcp-gateway https://matthisholleville.github.io/mcp-gateway
+helm install mcp-gateway mcp-gateway/mcp-gateway
 ```
-
-### Using Make (Development)
-
-```bash
-# Clone the repository
-git clone https://github.com/matthisholleville/mcp-gateway.git
-cd mcp-gateway
-
-# Install dependencies
-make deps
-
-# Run in development mode
-make dev
-```
-
-### Using Helm (Kubernetes)
-
-For Kubernetes deployment with Helm, see: **[charts/mcp-gateway/README.md](charts/mcp-gateway/README.md)**
 
 ## ⚙️ Configuration
 
-MCP Gateway uses a YAML configuration file with environment variable substitution:
+### Configuration Sources (Priority Order)
+1. **CLI Flags** (highest priority)
+2. **Environment Variables** (`MCP_GATEWAY_*`)
+3. **YAML Configuration File** (`config/config.yaml`)
+4. **Default Values** (lowest priority)
+
+### YAML Configuration Example
 
 ```yaml
-# Example: Server configuration
+# config/config.yaml
 server:
   url: "http://localhost:8082"
 
-# OAuth configuration
+# Authentication
+authProvider:
+  enabled: true
+  name: "firebase"  # or "okta"
+  firebase:
+    projectId: "${FIREBASE_PROJECT_ID}"
+
 oauth:
   enabled: true
-  provider: "okta"
-  authorization_servers:
-    - "${OKTA_ISSUER}"
+  authorizationServers:
+    - "https://securetoken.google.com/your-project-id"
+  bearerMethodsSupported: ["Bearer"]
+  scopesSupported: ["openid", "email", "profile"]
 
-# Authentication & authorization
-auth:
-  claims: ["groups"]
-  mappings:
-    "groups:Admin": ["scope:admin"]
-    "groups:User": ["scope:user"]
-  permissions:
-    "n8n:*": ["scope:user"]  # All n8n tools require user scope
-    "admin:*": ["scope:admin"]  # Admin tools require admin scope
+# Storage backend
+backendConfig:
+  engine: "memory"  # "postgres" coming soon
+  # uri: "postgres://user:pass@localhost/mcp_gateway"
 
-# Proxy servers
+# Proxy configuration
 proxy:
-  servers:
-    - name: "n8n"
-      type: "streamable-http"
-      connection:
-        url: "${N8N_URL}"
-        timeout: 30s
-      auth:
-        type: "header"
-        header: "x-n8n-key"
-        value: "${N8N_PROXY_KEY}"
+  cacheTTL: 300s
+  heartbeat:
+    enabled: true
+    intervalSeconds: 10s
 ```
 
 ### Environment Variables
 
-The configuration above uses environment variables for sensitive values. The exact variables depend on your OAuth provider and MCP servers configuration.
-
-**💡 Tip**: Use [mcp-inspector](https://github.com/modelcontextprotocol/inspector) to discover and test your MCP servers before configuring the gateway:
+All configuration options can be set via environment variables with `MCP_GATEWAY_` prefix:
 
 ```bash
-# Install mcp-inspector
-npm install -g @modelcontextprotocol/inspector
-
-# Inspect your MCP server
-mcp-inspector http://your-server:port
-
-# Use the discovered configuration in your gateway setup
+export MCP_GATEWAY_AUTH_PROVIDER_ENABLED=true
+export MCP_GATEWAY_AUTH_PROVIDER_NAME=firebase
+export MCP_GATEWAY_FIREBASE_PROJECT_ID=your-project-id
+export MCP_GATEWAY_OAUTH_ENABLED=true
 ```
 
-## OAuth2 Integration
+## 🔐 Authentication Providers
 
-MCP Gateway provides OAuth2 resource server capabilities:
+### Firebase Authentication
 
 ```bash
-# Discover OAuth2 metadata
-curl http://localhost:8082/.well-known/oauth-protected-resource
+go run main.go serve \
+  --auth-provider-name=firebase \
+  --firebase-project-id=your-project-id \
+  --oauth-authorization-servers=https://securetoken.google.com/your-project-id
 ```
 
-## Monitoring & Metrics
+### Okta OAuth2
 
-Built-in Prometheus metrics include:
-
-- `mcp_gateway_tools_called` - Number of tool calls by tool and proxy
-- `mcp_gateway_tools_call_errors` - Number of failed tool calls
-- `mcp_gateway_tools_call_success` - Number of successful tool calls
-- `mcp_gateway_list_tools` - Number of list tools requests
-
-## Permission System
-
-Fine-grained access control based on JWT claims:
-
-```yaml
-auth:
-  claims: ["groups", "roles"]
-  mappings:
-    "groups:Developers": ["scope:dev"]
-    "roles:Admin": ["scope:admin"]
-  permissions:
-    "n8n:*": ["scope:dev"]           # Developers can use n8n tools
-    "admin:user_management": ["scope:admin"]  # Only admins can manage users
-  options:
-    scope_mode: "any"  # User needs at least one matching scope
-    default_scope: null  # Deny by default
+```bash
+go run main.go serve \
+  --auth-provider-name=okta \
+  --okta-issuer=https://your-domain.okta.com/oauth2/default \
+  --okta-org-url=https://your-domain.okta.com \
+  --okta-client-id=your-client-id
+  --okta-private-key="-----BEGIN RSA PRIVATE KEY-----\n..."
+  --okta-private-key-id="akXpH7Ha5VKCe2kNT3eCPn_YRaJ0..."
 ```
 
-## 📊 API Reference
+## 📦 Storage Backends
 
-### Endpoints
+### Memory Backend (Development)
+- **Usage**: Development and testing
+- **Persistence**: None (data lost on restart)
+- **Configuration**: `--backend-engine=memory`
+
+### PostgreSQL Backend (Coming Soon)
+- **Usage**: Production environments
+- **Persistence**: Full durability
+- **Configuration**: `--backend-engine=postgres --backend-uri=postgres://...`
+
+## 🛠️ Admin API
+
+**You can update the admin API Key with `--http-admin-api-key` flag**
+
+The gateway provides RESTful APIs for runtime configuration management:
+
+### Proxy Management
+```bash
+# List all proxies
+curl -H "X-API-Key: your-api-key" http://localhost:8082/v1/admin/proxies
+
+# Add/Update proxy
+curl -X PUT -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"n8n","type":"streamable-http","connection":{"url":"http://n8n:5678"}}' \
+  http://localhost:8082/v1/admin/proxies/n8n
+```
+
+### Role Management
+```bash
+# Create role
+curl -X PUT -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"admin","permissions":[{"objectType":"*","proxy":"*","objectName":"*"}]}' \
+  http://localhost:8082/v1/admin/roles
+```
+
+### Claim-to-Role Mapping
+```bash
+# Map user claims to roles
+curl -X PUT -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"claimKey":"groups","claimValue":"admins","roles":["admin"]}' \
+  http://localhost:8082/v1/admin/claim-to-roles
+```
+
+## 📊 API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -223,52 +217,82 @@ auth:
 | `/live` | GET | Liveness probe |
 | `/ready` | GET | Readiness probe |
 | `/metrics` | GET | Prometheus metrics |
-| `/.well-known/oauth-protected-resource` | GET | OAuth2 metadata |
+| `/swagger/*` | GET | API Documentation |
+| `/v1/admin/proxies` | GET, PUT, DELETE | Proxy management |
+| `/v1/admin/roles` | GET, PUT, DELETE | Role management |
+| `/v1/admin/claim-to-roles` | GET, PUT, DELETE | Claim mapping |
 
 ## 🛠️ Development
 
 ### Prerequisites
-
-- Go 1.24.3 or later
+- Go 1.24.3+
 - Docker (optional)
-- Make (optional)
+- Make
 
-### Building
-
+### Commands
 ```bash
+# Install dependencies
+make deps
+
+# Run in development
+make dev
+
 # Build binary
 make build
 
 # Run tests
 make test
 
-# Run linting
-make lint
-
-# Generate test coverage
+# Generate coverage
 make test-cover
 
 # Build Docker image
 make docker-build
 ```
 
+### Configuration Paths
+The gateway searches for `config.yaml` in:
+- `/etc/mcp-gateway/`
+- `$HOME/.mcp-gateway/`
+- `./config/`
+
+## 📝 CLI Reference
+
+### Common Flags
+```bash
+--log-format              # text, json
+--log-level               # debug, info, warn, error
+--auth-provider-enabled   # Enable authentication
+--auth-provider-name      # firebase, okta
+--oauth-enabled           # Enable OAuth2
+--backend-engine          # memory, postgres
+--http-addr               # Server address (default: :8082)
+```
+
+### Firebase Flags
+```bash
+--firebase-project-id                    # Firebase project ID
+--oauth-authorization-servers           # Firebase token issuer
+--oauth-bearer-methods-supported        # Bearer
+--oauth-scopes-supported                # openid,email,profile
+```
+
+### Okta Flags
+```bash
+--okta-issuer           # Okta authorization server
+--okta-org-url          # Okta organization URL
+--okta-client-id        # Okta client ID
+--okta-private-key      # Private key for client auth
+--okta-private-key-id   # Private key ID
+```
+
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## 📝 License
+## 📄 License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- **Issues**: [GitHub Issues](https://github.com/matthisholleville/mcp-gateway/issues)
-
-## 🙏 Acknowledgments
-
-- [Model Context Protocol](https://modelcontextprotocol.io) - The protocol this gateway implements
-- [mark3labs/mcp-go](https://github.com/mark3labs/mcp-go) - Go implementation of MCP
-- [Echo Framework](https://echo.labstack.com/) - Web framework
+Licensed under the Apache License 2.0 - see [LICENSE](LICENSE) for details.
 
 ---
 

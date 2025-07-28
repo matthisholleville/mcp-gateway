@@ -95,7 +95,7 @@ func (b *BaseProvider) claimsToRoles(
 			fmt.Println("claimToRoles", claim, v)
 			b.appendRoles(out, b.lookup(ctx, claim, v))
 
-		case bool: // true/false deviennent "true"/"false"
+		case bool: // true/false become "true"/"false"
 			b.appendRoles(out, b.lookup(ctx, claim, fmt.Sprintf("%t", v)))
 
 		case []string:
