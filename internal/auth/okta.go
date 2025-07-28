@@ -1,23 +1,22 @@
-package oauth
+package auth
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/matthisholleville/mcp-gateway/internal/cfg"
+	"github.com/matthisholleville/mcp-gateway/pkg/logger"
 	jwtverifier "github.com/okta/okta-jwt-verifier-golang/v2"
 	"github.com/okta/okta-sdk-golang/v5/okta"
+	"go.uber.org/zap"
 )
 
 // OktaProvider is a provider for Okta
 type OktaProvider struct {
 	BaseProvider
-	cfg      *cfg.Okta
-	oauthCfg *cfg.OAuth
-	authCfg  *cfg.Auth
+	cfg      *cfg.OktaConfig
+	oauthCfg *cfg.OAuthConfig
 	client   *okta.APIClient
-	logger   *slog.Logger
+	logger   logger.Logger
 }
 
 // Init initializes the Okta provider
@@ -40,42 +39,21 @@ func (p *OktaProvider) Init() error {
 
 // VerifyToken verifies a JWT token
 func (p *OktaProvider) VerifyToken(token string) (*Jwt, error) {
-	ctx := context.Background()
 	verifierSetup := jwtverifier.JwtVerifier{
 		Issuer: p.cfg.Issuer,
 	}
 
 	verifier, err := verifierSetup.New()
 	if err != nil {
-		p.logger.ErrorContext(ctx, "Error setting up JWT verifier", slog.Any("err", err))
+		p.logger.Error("Error setting up JWT verifier", zap.Error(err))
 		return nil, fmt.Errorf("error setting up JWT verifier: %w", err)
 	}
 
 	jwtToken, err := verifier.VerifyAccessToken(token)
 	if err != nil {
-		p.logger.ErrorContext(ctx, "Error verifying JWT", slog.Any("err", err))
+		p.logger.Error("Error verifying JWT", zap.Error(err))
 		return nil, fmt.Errorf("error verifying JWT: %w", err)
 	}
 
-	claims, err := p.verifyClaims(&Jwt{Claims: jwtToken.Claims})
-	if err != nil {
-		p.logger.ErrorContext(ctx, "Error verifying claims", slog.Any("err", err))
-		return nil, fmt.Errorf("error verifying claims: %w", err)
-	}
-
-	return &Jwt{Claims: claims}, nil
-}
-
-// verifyClaims verifies the claims of a JWT token
-func (p *OktaProvider) verifyClaims(jwtToken *Jwt) (map[string]interface{}, error) {
-	claims := make(map[string]interface{})
-	for _, claim := range p.authCfg.Claims {
-		if _, ok := jwtToken.Claims[claim]; ok {
-			claims[claim] = jwtToken.Claims[claim]
-		}
-	}
-	if len(claims) != len(p.authCfg.Claims) {
-		return nil, fmt.Errorf("missing claims in JWT: %v", claims)
-	}
-	return claims, nil
+	return &Jwt{Claims: jwtToken.Claims}, nil
 }
