@@ -180,6 +180,9 @@ go run main.go serve \
 The gateway provides RESTful APIs for runtime configuration management:
 
 ### Proxy Management
+
+**Swagger is available at http://localhost:8082/swagger/index.html**
+
 ```bash
 # List all proxies
 curl -H "X-API-Key: your-api-key" http://localhost:8082/v1/admin/proxies
@@ -192,6 +195,11 @@ curl -X PUT -H "X-API-Key: your-api-key" \
 ```
 
 ### Role Management
+
+- `objectType` can be `*` or `tools`
+- `objectName` is the tool name if `objectType` is `tools`. Can be `*` or your object name
+- `proxy` is the proxy name. Can be `*` or your proxy name
+
 ```bash
 # Create role
 curl -X PUT -H "X-API-Key: your-api-key" \
@@ -201,6 +209,11 @@ curl -X PUT -H "X-API-Key: your-api-key" \
 ```
 
 ### Claim-to-Role Mapping
+
+- `claimKey` is the key in your JWT `Claims`
+- `claimValue` is the claim value
+- `roles` is the list of roles. You must create the roles before creating the claim-to-role mapping
+
 ```bash
 # Map user claims to roles
 curl -X PUT -H "X-API-Key: your-api-key" \
@@ -262,19 +275,40 @@ The gateway searches for `config.yaml` in:
 ```bash
 --log-format              # text, json
 --log-level               # debug, info, warn, error
+--log-timestamp-format    # Format for logging timestamps
 --auth-provider-enabled   # Enable authentication
 --auth-provider-name      # firebase, okta
 --oauth-enabled           # Enable OAuth2
---backend-engine          # memory, postgres
+--backend-engine          # memory, postgres (coming soon)
 --http-addr               # Server address (default: :8082)
+--http-admin-api-key      # Admin API key for MCP Gateway configuration
+```
+
+### Proxy Flags
+```bash
+--proxy-cache-ttl         # TTL for the proxy cache
+--proxy-heartbeat-interval # Interval for the proxy heartbeat
+```
+
+### Backend Flags
+```bash
+--backend-uri                    # URI for the auth backend
+--backend-max-open-conns         # Maximum number of open database connections
+--backend-max-idle-conns         # Maximum number of idle connections in pool
+--backend-conn-max-idle-time     # Maximum time a connection may be idle
+--backend-conn-max-lifetime      # Maximum time a connection may be reused
+```
+
+### OAuth Flags
+```bash
+--oauth-authorization-servers           # OAuth authorization servers
+--oauth-bearer-methods-supported        # Bearer methods supported for OAuth
+--oauth-scopes-supported                # OAuth scopes supported (e.g. openid,email,profile)
 ```
 
 ### Firebase Flags
 ```bash
 --firebase-project-id                    # Firebase project ID
---oauth-authorization-servers           # Firebase token issuer
---oauth-bearer-methods-supported        # Bearer
---oauth-scopes-supported                # openid,email,profile
 ```
 
 ### Okta Flags
