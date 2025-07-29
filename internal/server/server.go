@@ -140,7 +140,8 @@ func (s *Server) withOAuthProtectedResources() {
 	}
 
 	meta := map[string]any{
-		"resource":                 s.Config.OAuth.AuthorizationServers,
+		"resource":                 s.Config.OAuth.Resource,
+		"authorization_servers":    s.Config.OAuth.AuthorizationServers,
 		"bearer_methods_supported": s.Config.OAuth.BearerMethodsSupported,
 		"scopes_supported":         s.Config.OAuth.ScopesSupported,
 	}

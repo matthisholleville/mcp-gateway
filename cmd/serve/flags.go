@@ -32,6 +32,9 @@ func bindServeFlagsFunc(flags *pflag.FlagSet) func(*cobra.Command, []string) {
 		util.MustBindPFlag("oauth.authorizationServers", flags.Lookup("oauth-authorization-servers"))
 		util.MustBindEnv("oauth.authorizationServers", "MCP_GATEWAY_OAUTH_AUTHORIZATION_SERVERS")
 
+		util.MustBindPFlag("oauth.resource", flags.Lookup("oauth-resource"))
+		util.MustBindEnv("oauth.resource", "MCP_GATEWAY_OAUTH_RESOURCE")
+
 		util.MustBindPFlag("oauth.bearerMethodsSupported", flags.Lookup("oauth-bearer-methods-supported"))
 		util.MustBindEnv("oauthConfig.bearerMethodsSupported", "MCP_GATEWAY_OAUTH_BEARER_METHODS_SUPPORTED")
 
@@ -41,7 +44,7 @@ func bindServeFlagsFunc(flags *pflag.FlagSet) func(*cobra.Command, []string) {
 		util.MustBindPFlag("authProvider.enabled", flags.Lookup("auth-provider-enabled"))
 		util.MustBindEnv("authProvider.enabled", "MCP_GATEWAY_AUTH_PROVIDER_ENABLED")
 
-		cmd.MarkFlagsRequiredTogether("auth-provider-enabled", "auth-provider-name", "oauth-enabled", "oauth-authorization-servers", "oauth-bearer-methods-supported", "oauth-scopes-supported")
+		cmd.MarkFlagsRequiredTogether("auth-provider-enabled", "auth-provider-name", "oauth-enabled", "oauth-authorization-servers", "oauth-bearer-methods-supported", "oauth-scopes-supported", "oauth-resource")
 
 		util.MustBindPFlag("authProvider.name", flags.Lookup("auth-provider-name"))
 		util.MustBindEnv("authProvider.name", "MCP_GATEWAY_AUTH_PROVIDER_NAME")

@@ -50,6 +50,7 @@ type CORSConfig struct {
 
 type OAuthConfig struct {
 	Enabled                bool
+	Resource               string
 	AuthorizationServers   []string
 	BearerMethodsSupported []string
 	ScopesSupported        []string

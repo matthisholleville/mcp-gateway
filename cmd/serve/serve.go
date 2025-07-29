@@ -38,6 +38,8 @@ func NewRunCommand() *cobra.Command {
 
 	flags.StringSlice("oauth-authorization-servers", defaultConfig.OAuth.AuthorizationServers, "The authorization servers for OAuth")
 
+	flags.String("oauth-resource", defaultConfig.OAuth.Resource, "The resource for OAuth")
+
 	flags.StringSlice("oauth-bearer-methods-supported", defaultConfig.OAuth.BearerMethodsSupported, "The bearer methods supported for OAuth")
 
 	flags.StringSlice("oauth-scopes-supported", defaultConfig.OAuth.ScopesSupported, "The scopes supported for OAuth")

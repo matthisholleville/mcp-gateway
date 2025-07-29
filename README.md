@@ -302,6 +302,7 @@ The gateway searches for `config.yaml` in:
 ### OAuth Flags
 ```bash
 --oauth-authorization-servers           # OAuth authorization servers
+--oauth-resource                        # OAuth resource (e.g. http://localhost:8082)
 --oauth-bearer-methods-supported        # Bearer methods supported for OAuth
 --oauth-scopes-supported                # OAuth scopes supported (e.g. openid,email,profile)
 ```
