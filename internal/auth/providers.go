@@ -35,15 +35,6 @@ func NewProvider(provider string, cfg *cfg.Config, logger logger.Logger, storage
 			oauthCfg: cfg.OAuth,
 			logger:   logger,
 		}, nil
-	case "firebase":
-		return &FirebaseProvider{
-			BaseProvider: BaseProvider{
-				logger:  logger,
-				storage: storage,
-			},
-			cfg:    cfg.AuthProvider.Firebase,
-			logger: logger,
-		}, nil
 	default:
 		return nil, fmt.Errorf("provider %s not found", provider)
 	}

@@ -9,7 +9,7 @@ A **flexible and extensible proxy gateway** for [MCP (Model Context Protocol)](h
 ## 🚀 Features
 
 ### 🔐 Authentication & Authorization
-- **Multiple Auth Providers**: Firebase Authentication, Okta OAuth2/JWT
+- **Multiple Auth Providers**: Okta OAuth2/JWT
 - **Role-Based Permissions**: Fine-grained tool access control
 - **Claim-to-Role Mapping**: Flexible user permission assignment
 - **JWT Token Verification**: Secure token validation
@@ -33,7 +33,7 @@ A **flexible and extensible proxy gateway** for [MCP (Model Context Protocol)](h
 │   AI Client     │───▶│  MCP Gateway    │───▶│   MCP Server    │
 │ (Claude, etc.)  │    │                 │    │  (n8n, etc.)    │
 └─────────────────┘    │  ┌───────────┐  │    └─────────────────┘
-                       │  │Firebase/  │  │
+                       │  │           │  │
                        │  │Okta Auth  │  │    ┌─────────────────┐
                        │  │  Roles    │  │───▶│ Another Server  │
                        │  │ Metrics   │  │    └─────────────────┘
@@ -46,21 +46,14 @@ A **flexible and extensible proxy gateway** for [MCP (Model Context Protocol)](h
 ### Using Go (Development)
 
 ```bash
-# Clone and run with Firebase
+# Clone and run without authentication
 git clone https://github.com/matthisholleville/mcp-gateway.git
 cd mcp-gateway
 
-# Run with Firebase authentication
+# Run without authentication
 go run main.go serve \
   --log-format=text \
-  --log-level=debug \
-  --auth-provider-enabled=true \
-  --auth-provider-name=firebase \
-  --firebase-project-id=your-project-id \
-  --oauth-enabled=true \
-  --oauth-authorization-servers=https://securetoken.google.com/your-project-id \
-  --oauth-bearer-methods-supported=Bearer \
-  --oauth-scopes-supported=openid,email,profile
+  --log-level=debug 
 ```
 
 ### Using Docker
@@ -71,10 +64,6 @@ docker pull ghcr.io/matthisholleville/mcp-gateway:latest
 
 # Run with environment variables
 docker run -p 8082:8082 \
-  -e MCP_GATEWAY_AUTH_PROVIDER_ENABLED=true \
-  -e MCP_GATEWAY_AUTH_PROVIDER_NAME=firebase \
-  -e MCP_GATEWAY_FIREBASE_PROJECT_ID=your-project-id \
-  -e MCP_GATEWAY_OAUTH_ENABLED=true \
   ghcr.io/matthisholleville/mcp-gateway:latest serve
 ```
 
@@ -103,14 +92,19 @@ server:
 # Authentication
 authProvider:
   enabled: true
-  name: "firebase"  # or "okta"
-  firebase:
-    projectId: "${FIREBASE_PROJECT_ID}"
+  name: "okta"
+  okta:
+    issuer: "https://custom-xxx.okta.com/oauth2/default"
+    orgUrl: "https://custom-xxx.okta.com"
+    clientId: "xxx"
+    privateKey: "-----BEGIN PRIVATE KEY-----xxx-----END PRIVATE KEY-----"
+    privateKeyId: "xxx"
 
 oauth:
   enabled: true
+  provider: "okta"
   authorizationServers:
-    - "https://securetoken.google.com/your-project-id"
+    - "https://custom-xxx.okta.com/oauth2/default"
   bearerMethodsSupported: ["Bearer"]
   scopesSupported: ["openid", "email", "profile"]
 
@@ -133,21 +127,10 @@ All configuration options can be set via environment variables with `MCP_GATEWAY
 
 ```bash
 export MCP_GATEWAY_AUTH_PROVIDER_ENABLED=true
-export MCP_GATEWAY_AUTH_PROVIDER_NAME=firebase
-export MCP_GATEWAY_FIREBASE_PROJECT_ID=your-project-id
 export MCP_GATEWAY_OAUTH_ENABLED=true
 ```
 
 ## 🔐 Authentication Providers
-
-### Firebase Authentication
-
-```bash
-go run main.go serve \
-  --auth-provider-name=firebase \
-  --firebase-project-id=your-project-id \
-  --oauth-authorization-servers=https://securetoken.google.com/your-project-id
-```
 
 ### Okta OAuth2
 
@@ -277,7 +260,7 @@ The gateway searches for `config.yaml` in:
 --log-level               # debug, info, warn, error
 --log-timestamp-format    # Format for logging timestamps
 --auth-provider-enabled   # Enable authentication
---auth-provider-name      # firebase, okta
+--auth-provider-name      # okta
 --oauth-enabled           # Enable OAuth2
 --backend-engine          # memory, postgres (coming soon)
 --http-addr               # Server address (default: :8082)
@@ -305,11 +288,6 @@ The gateway searches for `config.yaml` in:
 --oauth-resource                        # OAuth resource (e.g. http://localhost:8082)
 --oauth-bearer-methods-supported        # Bearer methods supported for OAuth
 --oauth-scopes-supported                # OAuth scopes supported (e.g. openid,email,profile)
-```
-
-### Firebase Flags
-```bash
---firebase-project-id                    # Firebase project ID
 ```
 
 ### Okta Flags

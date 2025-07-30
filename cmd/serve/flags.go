@@ -67,9 +67,6 @@ func bindServeFlagsFunc(flags *pflag.FlagSet) func(*cobra.Command, []string) {
 		util.MustBindPFlag("backendConfig.connMaxLifetime", flags.Lookup("backend-conn-max-lifetime"))
 		util.MustBindEnv("backendConfig.connMaxLifetime", "MCP_GATEWAY_BACKEND_CONN_MAX_LIFETIME")
 
-		util.MustBindPFlag("authProvider.firebase.projectId", flags.Lookup("firebase-project-id"))
-		util.MustBindEnv("authProvider.firebase.projectId", "MCP_GATEWAY_FIREBASE_PROJECT_ID")
-
 		util.MustBindPFlag("authProvider.okta.issuer", flags.Lookup("okta-issuer"))
 		util.MustBindEnv("authProvider.okta.issuer", "MCP_GATEWAY_OKTA_ISSUER")
 

@@ -60,8 +60,6 @@ func NewRunCommand() *cobra.Command {
 
 	flags.Duration("backend-conn-max-lifetime", defaultConfig.BackendConfig.ConnMaxLifetime, "The maximum amount of time a connection to the datastore may be reused")
 
-	flags.String("firebase-project-id", defaultConfig.AuthProvider.Firebase.ProjectID, "The project ID for the Firebase auth provider")
-
 	flags.String("okta-issuer", defaultConfig.AuthProvider.Okta.Issuer, "The issuer for the Okta auth provider")
 
 	flags.String("okta-org-url", defaultConfig.AuthProvider.Okta.OrgURL, "The org URL for the Okta auth provider")
