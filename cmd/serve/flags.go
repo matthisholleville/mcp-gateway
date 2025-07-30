@@ -71,19 +71,21 @@ func bindServeFlagsFunc(flags *pflag.FlagSet) func(*cobra.Command, []string) {
 		util.MustBindEnv("authProvider.firebase.projectId", "MCP_GATEWAY_FIREBASE_PROJECT_ID")
 
 		util.MustBindPFlag("authProvider.okta.issuer", flags.Lookup("okta-issuer"))
-		util.MustBindEnv("auth-provider.okta.issuer", "MCP_GATEWAY_OKTA_ISSUER")
+		util.MustBindEnv("authProvider.okta.issuer", "MCP_GATEWAY_OKTA_ISSUER")
 
-		util.MustBindPFlag("authProvider.okta.org-url", flags.Lookup("okta-org-url"))
-		util.MustBindEnv("authProvider.okta.org-url", "MCP_GATEWAY_OKTA_ORG_URL")
+		util.MustBindPFlag("authProvider.okta.orgUrl", flags.Lookup("okta-org-url"))
+		util.MustBindEnv("authProvider.okta.orgUrl", "MCP_GATEWAY_OKTA_ORG_URL")
 
-		util.MustBindPFlag("authProvider.okta.client-id", flags.Lookup("okta-client-id"))
-		util.MustBindEnv("authProvider.okta.client-id", "MCP_GATEWAY_OKTA_CLIENT_ID")
+		util.MustBindPFlag("authProvider.okta.clientId", flags.Lookup("okta-client-id"))
+		util.MustBindEnv("authProvider.okta.clientId", "MCP_GATEWAY_OKTA_CLIENT_ID")
 
-		util.MustBindPFlag("authProvider.okta.private-key", flags.Lookup("okta-private-key"))
-		util.MustBindEnv("authProvider.okta.private-key", "MCP_GATEWAY_OKTA_PRIVATE_KEY")
+		util.MustBindPFlag("authProvider.okta.privateKey", flags.Lookup("okta-private-key"))
+		util.MustBindEnv("authProvider.okta.privateKey", "MCP_GATEWAY_OKTA_PRIVATE_KEY")
 
-		util.MustBindPFlag("authProvider.okta.private-key-id", flags.Lookup("okta-private-key-id"))
-		util.MustBindEnv("authProvider.okta.private-key-id", "MCP_GATEWAY_OKTA_PRIVATE_KEY_ID")
+		util.MustBindPFlag("authProvider.okta.privateKeyId", flags.Lookup("okta-private-key-id"))
+		util.MustBindEnv("authProvider.okta.privateKeyId", "MCP_GATEWAY_OKTA_PRIVATE_KEY_ID")
+
+		cmd.MarkFlagsRequiredTogether("okta-private-key", "okta-private-key-id", "okta-client-id", "okta-org-url", "okta-issuer")
 
 		util.MustBindPFlag("http.adminApiKey", flags.Lookup("http-admin-api-key"))
 		util.MustBindEnv("http.adminApiKey", "MCP_GATEWAY_HTTP_ADMIN_API_KEY")
