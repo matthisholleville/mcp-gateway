@@ -18,14 +18,14 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/v1/admin/claim-to-roles": {
+        "/v1/admin/attribute-to-roles": {
             "get": {
                 "security": [
                     {
                         "Authentication": []
                     }
                 ],
-                "description": "Get all claim to roles",
+                "description": "Get all attribute to roles",
                 "consumes": [
                     "application/json"
                 ],
@@ -33,16 +33,16 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "claim to roles"
+                    "attribute to roles"
                 ],
-                "summary": "Get all claim to roles",
+                "summary": "Get all attribute to roles",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/storage.ClaimToRolesConfig"
+                                "$ref": "#/definitions/storage.AttributeToRolesConfig"
                             }
                         }
                     },
@@ -63,7 +63,7 @@ const docTemplate = `{
                         "Authentication": []
                     }
                 ],
-                "description": "Upsert a claim to role",
+                "description": "Upsert a attribute to role",
                 "consumes": [
                     "application/json"
                 ],
@@ -71,17 +71,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "claim to roles"
+                    "attribute to roles"
                 ],
-                "summary": "Upsert a claim to role",
+                "summary": "Upsert a attribute to role",
                 "parameters": [
                     {
-                        "description": "Claim to role",
-                        "name": "claimToRole",
+                        "description": "Attribute to role",
+                        "name": "attributeToRole",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/storage.ClaimToRolesConfig"
+                            "$ref": "#/definitions/storage.AttributeToRolesConfig"
                         }
                     }
                 ],
@@ -89,7 +89,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/storage.ClaimToRolesConfig"
+                            "$ref": "#/definitions/storage.AttributeToRolesConfig"
                         }
                     },
                     "400": {
@@ -113,14 +113,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/admin/claim-to-roles/{claimKey}/{claimValue}": {
+        "/v1/admin/attribute-to-roles/{attributeKey}/{attributeValue}": {
             "delete": {
                 "security": [
                     {
                         "Authentication": []
                     }
                 ],
-                "description": "Delete a claim to role",
+                "description": "Delete a attribute to role",
                 "consumes": [
                     "application/json"
                 ],
@@ -128,21 +128,21 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "claim to roles"
+                    "attribute to roles"
                 ],
-                "summary": "Delete a claim to role",
+                "summary": "Delete a attribute to role",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Claim key",
-                        "name": "claimKey",
+                        "description": "Attribute key",
+                        "name": "attributeKey",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Claim value",
-                        "name": "claimValue",
+                        "description": "Attribute value",
+                        "name": "attributeValue",
                         "in": "path",
                         "required": true
                     }
@@ -521,13 +521,13 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "storage.ClaimToRolesConfig": {
+        "storage.AttributeToRolesConfig": {
             "type": "object",
             "properties": {
-                "claim_key": {
+                "attribute_key": {
                     "type": "string"
                 },
-                "claim_value": {
+                "attribute_value": {
                     "type": "string"
                 },
                 "roles": {
@@ -535,17 +535,6 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "storage.ConnectionConfig": {
-            "type": "object",
-            "properties": {
-                "timeout": {
-                    "$ref": "#/definitions/time.Duration"
-                },
-                "url": {
-                    "type": "string"
                 }
             }
         },
@@ -574,13 +563,50 @@ const docTemplate = `{
                 }
             }
         },
-        "storage.ProxyAuthConfig": {
+        "storage.ProxyAuthType": {
+            "type": "string",
+            "enum": [
+                "header",
+                "oauth"
+            ],
+            "x-enum-varnames": [
+                "ProxyAuthTypeHeader",
+                "ProxyAuthTypeOAuth"
+            ]
+        },
+        "storage.ProxyConfig": {
             "type": "object",
             "properties": {
-                "header": {
+                "authType": {
+                    "$ref": "#/definitions/storage.ProxyAuthType"
+                },
+                "headers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/storage.ProxyHeader"
+                    }
+                },
+                "name": {
                     "type": "string"
                 },
+                "oauth": {
+                    "$ref": "#/definitions/storage.ProxyOAuth"
+                },
+                "timeout": {
+                    "$ref": "#/definitions/time.Duration"
+                },
                 "type": {
+                    "$ref": "#/definitions/storage.ProxyType"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "storage.ProxyHeader": {
+            "type": "object",
+            "properties": {
+                "key": {
                     "type": "string"
                 },
                 "value": {
@@ -588,20 +614,20 @@ const docTemplate = `{
                 }
             }
         },
-        "storage.ProxyConfig": {
+        "storage.ProxyOAuth": {
             "type": "object",
             "properties": {
-                "auth": {
-                    "$ref": "#/definitions/storage.ProxyAuthConfig"
-                },
-                "connection": {
-                    "$ref": "#/definitions/storage.ConnectionConfig"
-                },
-                "name": {
+                "clientId": {
                     "type": "string"
                 },
-                "type": {
-                    "$ref": "#/definitions/storage.ProxyType"
+                "clientSecret": {
+                    "type": "string"
+                },
+                "scopes": {
+                    "type": "string"
+                },
+                "tokenEndpoint": {
+                    "type": "string"
                 }
             }
         },

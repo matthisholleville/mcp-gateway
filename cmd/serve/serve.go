@@ -60,6 +60,8 @@ func NewRunCommand() *cobra.Command {
 
 	flags.Duration("backend-conn-max-lifetime", defaultConfig.BackendConfig.ConnMaxLifetime, "The maximum amount of time a connection to the datastore may be reused")
 
+	flags.String("backend-encryption-key", defaultConfig.BackendConfig.EncryptionKey, "The key used to encrypt and decrypt data")
+
 	flags.String("okta-issuer", defaultConfig.AuthProvider.Okta.Issuer, "The issuer for the Okta auth provider")
 
 	flags.String("okta-org-url", defaultConfig.AuthProvider.Okta.OrgURL, "The org URL for the Okta auth provider")

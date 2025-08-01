@@ -1,0 +1,232 @@
+version: "2"
+
+run:
+  timeout: 5m
+  go: "1.24" # Minimum supported Go version
+  tests: false
+  modules-download-mode: readonly
+
+linters:
+  default: none # Disable all linters by default
+  enable:
+    # Errors and bugs
+    - errcheck # Checks for unchecked errors
+    - govet # Official Go static analysis
+    - staticcheck # Advanced static analysis
+    - ineffassign # Detects ineffectual assignments
+    - unused # Detects unused code
+    - bodyclose # Checks that HTTP response body is closed
+    - gosec # Security analysis
+
+    # Complexity and performance
+    - gocyclo # Cyclomatic complexity
+    - funlen # Function length
+    - gocognit # Cognitive complexity
+    - prealloc # Optimizes slice allocations
+    - unconvert # Detects unnecessary conversions
+
+    # Style and best practices
+    - revive # Modern replacement for golint
+    - misspell # Spelling mistakes
+    - whitespace # Extra whitespace
+    - nolintlint # Checks nolint directives
+
+    # Tests and documentation
+    - ginkgolinter # Ginkgo-specific linter
+
+    # Constants and duplications
+    - goconst # Detects repeated strings that should be constants
+    - dupl # Detects code duplication
+    - mnd # Magic numbers detector
+
+    # Domain-specific
+    # - dogsled           # Assignments with too many blank variables (DISABLED)
+    - gocritic # Meta-linter with many rules
+    - lll # Line length
+    - nakedret # Naked returns in large functions
+    - noctx # Detects HTTP requests without context
+    - unparam # Unused parameters
+    - goprintffuncname # Printf function naming
+
+  settings:
+    # Dupl configuration for duplication detection
+    dupl:
+      threshold: 100
+
+    # Errcheck configuration
+    errcheck:
+      check-type-assertions: true
+      check-blank: false
+
+    # Funlen configuration
+    funlen:
+      lines: 200 # Maximum 100 lines per function
+      statements: 50 # Maximum 50 statements per function
+      ignore-comments: true
+
+    # Goconst configuration
+    goconst:
+      min-len: 3 # Minimum 3 characters for a constant
+      min-occurrences: 3 # Minimum 3 occurrences
+
+    # Gocritic configuration
+    gocritic:
+      disabled-checks:
+        - dupImport
+        - ifElseChain
+        - octalLiteral
+        - whyNoLint
+        - singleCaseSwitch # Sometimes useful for readability
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+      settings:
+        captLocal:
+          paramsOnly: true
+        hugeParam:
+          sizeThreshold: 80
+
+    # Gocyclo configuration
+    gocyclo:
+      min-complexity: 12 # Slightly stricter than 15
+
+    # Gocognit configuration (cognitive complexity)
+    gocognit:
+      min-complexity: 20
+
+    # Lll configuration (line length)
+    lll:
+      line-length: 140
+      tab-width: 2
+
+    # Mnd configuration (magic numbers)
+    mnd:
+      checks:
+        - argument
+        - case
+        - condition
+        - operation
+        - return
+      # ignored-numbers: <- We don't want Magic Number
+      #   - "0"
+      #   - "1"
+      #   - "2"
+      #   - "3"
+      #   - "10"
+      #   - "100"
+      #   - "1000"
+      ignored-functions:
+        - strings.SplitN
+        - make
+
+    # Nolintlint configuration
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-no-explanation:
+        - funlen
+        - lll
+        - gocyclo
+      allow-unused: false
+
+    # Revive configuration
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unused-parameter
+        - name: unreachable-code
+        - name: redefines-builtin-id
+
+    # Gosec configuration
+    gosec:
+      severity: medium
+      confidence: medium
+      excludes:
+        - G404 # Use of weak random number generator (math/rand) - sometimes OK for tests
+
+    # Staticcheck configuration
+    staticcheck:
+      checks: ["all"]
+
+  exclusions:
+    # Exclusion rules for specific paths and linters
+    rules:
+      # Exclude some linters from running on tests files.
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - errcheck
+          - dupl
+          - gosec
+          - funlen
+          - gocognit
+          - mnd
+
+      # Exclude magic number detection in main.go and config files
+      - path: (main\.go|config\.go|configuration\.go)
+        linters:
+          - mnd
+
+      # Exclude depguard for vendor and generated files
+      - path: (vendor/|generated/|\.pb\.go$|\.gen\.go$)
+        linters:
+          - depguard
+          - revive
+          - stylecheck
+
+      # Allow embedding interfaces in internal packages
+      - path: internal/
+        text: "exported.*should have comment"
+        linters:
+          - revive
+
+formatters:
+  enable:
+    - gofmt # Standard Go formatting
+    - goimports # Import organization
+
+issues:
+  # Maximum issues count per one linter. Set to 0 to disable.
+  max-issues-per-linter: 50
+
+  # Maximum count of issues with the same text. Set to 0 to disable.
+  max-same-issues: 3
+
+  # Show only new issues: if there are unstaged changes or untracked files
+  new: false
+
+  # Fix found issues (if it's supported by the linter)
+  fix: false
+
+# Output configuration
+output:
+  formats:
+    text:
+      print-issued-lines: true
+      print-linter-name: true
+  sort-order:
+    - linter
+    - file

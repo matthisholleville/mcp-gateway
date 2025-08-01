@@ -11,7 +11,7 @@ A **flexible and extensible proxy gateway** for [MCP (Model Context Protocol)](h
 ### 🔐 Authentication & Authorization
 - **Multiple Auth Providers**: Okta OAuth2/JWT
 - **Role-Based Permissions**: Fine-grained tool access control
-- **Claim-to-Role Mapping**: Flexible user permission assignment
+- **attribute-to-Role Mapping**: Flexible user permission assignment
 - **JWT Token Verification**: Secure token validation
 
 ### 📊 Enterprise Ready
@@ -191,18 +191,18 @@ curl -X PUT -H "X-API-Key: your-api-key" \
   http://localhost:8082/v1/admin/roles
 ```
 
-### Claim-to-Role Mapping
+### Attribute-to-Role Mapping
 
-- `claimKey` is the key in your JWT `Claims`
-- `claimValue` is the claim value
-- `roles` is the list of roles. You must create the roles before creating the claim-to-role mapping
+- `attributeKey` is the key in your JWT `attributes`
+- `attributeValue` is the attribute value
+- `roles` is the list of roles. You must create the roles before creating the attribute-to-role mapping
 
 ```bash
-# Map user claims to roles
+# Map user attributes to roles
 curl -X PUT -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
-  -d '{"claimKey":"groups","claimValue":"admins","roles":["admin"]}' \
-  http://localhost:8082/v1/admin/claim-to-roles
+  -d '{"attributeKey":"groups","attributeValue":"admins","roles":["admin"]}' \
+  http://localhost:8082/v1/admin/attribute-to-roles
 ```
 
 ## 📊 API Endpoints
@@ -216,7 +216,7 @@ curl -X PUT -H "X-API-Key: your-api-key" \
 | `/swagger/*` | GET | API Documentation |
 | `/v1/admin/proxies` | GET, PUT, DELETE | Proxy management |
 | `/v1/admin/roles` | GET, PUT, DELETE | Role management |
-| `/v1/admin/claim-to-roles` | GET, PUT, DELETE | Claim mapping |
+| `/v1/admin/attribute-to-roles` | GET, PUT, DELETE | attribute mapping |
 
 ## 🛠️ Development
 

@@ -23,10 +23,10 @@ func (b *BaseProvider) VerifyPermissions(
 	objectType, proxy, objectName string,
 	claims map[string]interface{},
 ) bool {
-	roles, err := b.claimsToRoles(ctx, claims)
+	roles, err := b.attributeToRoles(ctx, claims)
 	if err != nil || len(roles) == 0 {
 		if err != nil {
-			b.logger.Error("claim→roles failed", zap.Error(err))
+			b.logger.Error("attributeToRoles failed", zap.Error(err))
 		}
 		return false
 	}
@@ -81,8 +81,8 @@ func (b *BaseProvider) match(pattern, value string) bool {
 	return pattern == "*" || pattern == value
 }
 
-// claimToRoles converts the claims into claim to roles
-func (b *BaseProvider) claimsToRoles(
+// attributeToRoles converts the claims into attribute to roles
+func (b *BaseProvider) attributeToRoles(
 	ctx context.Context,
 	claims map[string]interface{},
 ) ([]string, error) {
@@ -90,9 +90,7 @@ func (b *BaseProvider) claimsToRoles(
 
 	for claim, raw := range claims {
 		switch v := raw.(type) {
-
 		case string:
-			fmt.Println("claimToRoles", claim, v)
 			b.appendRoles(out, b.lookup(ctx, claim, v))
 
 		case bool: // true/false become "true"/"false"
@@ -126,9 +124,9 @@ func (b *BaseProvider) lookup(
 	ctx context.Context,
 	claim, value string,
 ) []string {
-	mapping, err := b.storage.GetClaimToRoles(ctx, claim, value)
+	mapping, err := b.storage.GetAttributeToRoles(ctx, claim, value)
 	if err != nil || len(mapping.Roles) == 0 {
-		b.logger.Debug("GetClaimToRoles failed",
+		b.logger.Debug("GetAttributeToRoles failed",
 			zap.String("claim", claim),
 			zap.String("value", value),
 			zap.Error(err))

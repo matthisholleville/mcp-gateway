@@ -18,9 +18,9 @@ func (s *Server) ConfigureRoutes(c *echo.Group) {
 	admin.PUT("/roles", s.UpsertRole)
 	admin.DELETE("/roles/:role", s.DeleteRole)
 
-	admin.GET("/claim-to-roles", s.GetClaimToRoles)
-	admin.PUT("/claim-to-roles", s.UpsertClaimToRole)
-	admin.DELETE("/claim-to-roles/:claimKey/:claimValue", s.DeleteClaimToRole)
+	admin.GET("/attribute-to-roles", s.GetAttributeToRoles)
+	admin.PUT("/attribute-to-roles", s.UpsertAttributeToRole)
+	admin.DELETE("/attribute-to-roles/:attributeKey/:attributeValue", s.DeleteAttributeToRole)
 }
 
 // @Summary		Get all proxies
@@ -33,9 +33,12 @@ func (s *Server) ConfigureRoutes(c *echo.Group) {
 // @Failure		500	{object}	map[string]string
 // @Router			/v1/admin/proxies [get]
 func (s *Server) GetProxies(c echo.Context) error {
-	proxies, err := s.Storage.ListProxies(c.Request().Context())
+	proxies, err := s.Storage.ListProxies(c.Request().Context(), false)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	if len(proxies) == 0 {
+		proxies = []storage.ProxyConfig{}
 	}
 	return c.JSON(http.StatusOK, proxies)
 }
@@ -52,7 +55,7 @@ func (s *Server) GetProxies(c echo.Context) error {
 // @Router			/v1/admin/proxies/{name} [get]
 func (s *Server) GetProxy(c echo.Context) error {
 	name := c.Param("name")
-	proxy, err := s.Storage.GetProxy(c.Request().Context(), storage.ProxyConfig{Name: name})
+	proxy, err := s.Storage.GetProxy(c.Request().Context(), name, false)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -72,10 +75,12 @@ func (s *Server) GetProxy(c echo.Context) error {
 // @Router			/v1/admin/proxies/{name} [put]
 func (s *Server) UpsertProxy(c echo.Context) error {
 	proxy := storage.ProxyConfig{}
+	var err error
 	if err := c.Bind(&proxy); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
-	err := s.Storage.SetProxy(c.Request().Context(), proxy)
+
+	err = s.Storage.SetProxy(c.Request().Context(), proxy, true)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -164,66 +169,66 @@ func (s *Server) DeleteRole(c echo.Context) error {
 	return nil
 }
 
-// @Summary		Get all claim to roles
-// @Description	Get all claim to roles
-// @Tags			claim to roles
+// @Summary		Get all attribute to roles
+// @Description	Get all attribute to roles
+// @Tags			attribute to roles
 // @Accept			json
 // @Produce		json
 // @Security		Authentication
-// @Success		200	{array}	storage.ClaimToRolesConfig
+// @Success		200	{array}	storage.AttributeToRolesConfig
 // @Failure		500	{object}	map[string]string
-// @Router			/v1/admin/claim-to-roles [get]
-func (s *Server) GetClaimToRoles(c echo.Context) error {
-	claimToRoles, err := s.Storage.ListClaimToRoles(c.Request().Context())
+// @Router			/v1/admin/attribute-to-roles [get]
+func (s *Server) GetAttributeToRoles(c echo.Context) error {
+	attributeToRoles, err := s.Storage.ListAttributeToRoles(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-	return c.JSON(http.StatusOK, claimToRoles)
+	return c.JSON(http.StatusOK, attributeToRoles)
 }
 
-// @Summary		Upsert a claim to role
-// @Description	Upsert a claim to role
-// @Tags			claim to roles
+// @Summary		Upsert a attribute to role
+// @Description	Upsert a attribute to role
+// @Tags			attribute to roles
 // @Accept			json
 // @Produce		json
-// @Param			claimToRole	body	storage.ClaimToRolesConfig	true	"Claim to role"
-// @Success		200	{object}	storage.ClaimToRolesConfig
+// @Param			attributeToRole	body	storage.AttributeToRolesConfig	true	"Attribute to role"
+// @Success		200	{object}	storage.AttributeToRolesConfig
 // @Failure		400	{object}	map[string]string
 // @Failure		500	{object}	map[string]string
 // @Security		Authentication
-// @Router			/v1/admin/claim-to-roles [put]
-func (s *Server) UpsertClaimToRole(c echo.Context) error {
-	claimToRole := storage.ClaimToRolesConfig{}
-	if err := c.Bind(&claimToRole); err != nil {
+// @Router			/v1/admin/attribute-to-roles [put]
+func (s *Server) UpsertAttributeToRole(c echo.Context) error {
+	attributeToRole := storage.AttributeToRolesConfig{}
+	if err := c.Bind(&attributeToRole); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	err := s.Storage.SetClaimToRoles(c.Request().Context(), claimToRole)
+	err := s.Storage.SetAttributeToRoles(c.Request().Context(), attributeToRole)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 	return nil
 }
 
-// @Summary		Delete a claim to role
-// @Description	Delete a claim to role
-// @Tags			claim to roles
+// @Summary		Delete a attribute to role
+// @Description	Delete a attribute to role
+// @Tags			attribute to roles
 // @Accept			json
 // @Produce		json
-// @Param			claimKey	path	string	true	"Claim key"
-// @Param			claimValue	path	string	true	"Claim value"
+// @Param			attributeKey	path	string	true	"Attribute key"
+// @Param			attributeValue	path	string	true	"Attribute value"
 // @Success		200	{object}	map[string]string
 // @Failure		400	{object}	map[string]string
 // @Failure		500	{object}	map[string]string
 // @Security		Authentication
-// @Router			/v1/admin/claim-to-roles/{claimKey}/{claimValue} [delete]
-func (s *Server) DeleteClaimToRole(c echo.Context) error {
-	claimKey := c.Param("claimKey")
-	claimValue := c.Param("claimValue")
-	if claimKey == "" || claimValue == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "claim key and claim value are required"})
+// @Router			/v1/admin/attribute-to-roles/{attributeKey}/{attributeValue} [delete]
+func (s *Server) DeleteAttributeToRole(c echo.Context) error {
+	attributeKey := c.Param("attributeKey")
+	attributeValue := c.Param("attributeValue")
+	if attributeKey == "" || attributeValue == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "attribute key and attribute value are required"})
 	}
-	err := s.Storage.DeleteClaimToRoles(c.Request().Context(), claimKey, claimValue)
+	err := s.Storage.DeleteAttributeToRoles(c.Request().Context(), attributeKey, attributeValue)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}

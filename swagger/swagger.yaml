@@ -1,22 +1,15 @@
 basePath: /
 definitions:
-  storage.ClaimToRolesConfig:
+  storage.AttributeToRolesConfig:
     properties:
-      claim_key:
+      attribute_key:
         type: string
-      claim_value:
+      attribute_value:
         type: string
       roles:
         items:
           type: string
         type: array
-    type: object
-  storage.ConnectionConfig:
-    properties:
-      timeout:
-        $ref: '#/definitions/time.Duration'
-      url:
-        type: string
     type: object
   storage.ObjectType:
     enum:
@@ -35,25 +28,50 @@ definitions:
       proxy:
         type: string
     type: object
-  storage.ProxyAuthConfig:
+  storage.ProxyAuthType:
+    enum:
+    - header
+    - oauth
+    type: string
+    x-enum-varnames:
+    - ProxyAuthTypeHeader
+    - ProxyAuthTypeOAuth
+  storage.ProxyConfig:
     properties:
-      header:
+      authType:
+        $ref: '#/definitions/storage.ProxyAuthType'
+      headers:
+        items:
+          $ref: '#/definitions/storage.ProxyHeader'
+        type: array
+      name:
         type: string
+      oauth:
+        $ref: '#/definitions/storage.ProxyOAuth'
+      timeout:
+        $ref: '#/definitions/time.Duration'
       type:
+        $ref: '#/definitions/storage.ProxyType'
+      url:
+        type: string
+    type: object
+  storage.ProxyHeader:
+    properties:
+      key:
         type: string
       value:
         type: string
     type: object
-  storage.ProxyConfig:
+  storage.ProxyOAuth:
     properties:
-      auth:
-        $ref: '#/definitions/storage.ProxyAuthConfig'
-      connection:
-        $ref: '#/definitions/storage.ConnectionConfig'
-      name:
+      clientId:
         type: string
-      type:
-        $ref: '#/definitions/storage.ProxyType'
+      clientSecret:
+        type: string
+      scopes:
+        type: string
+      tokenEndpoint:
+        type: string
     type: object
   storage.ProxyType:
     enum:
@@ -98,11 +116,11 @@ info:
   title: MCP Gateway API
   version: "1.0"
 paths:
-  /v1/admin/claim-to-roles:
+  /v1/admin/attribute-to-roles:
     get:
       consumes:
       - application/json
-      description: Get all claim to roles
+      description: Get all attribute to roles
       produces:
       - application/json
       responses:
@@ -110,7 +128,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/storage.ClaimToRolesConfig'
+              $ref: '#/definitions/storage.AttributeToRolesConfig'
             type: array
         "500":
           description: Internal Server Error
@@ -120,27 +138,27 @@ paths:
             type: object
       security:
       - Authentication: []
-      summary: Get all claim to roles
+      summary: Get all attribute to roles
       tags:
-      - claim to roles
+      - attribute to roles
     put:
       consumes:
       - application/json
-      description: Upsert a claim to role
+      description: Upsert a attribute to role
       parameters:
-      - description: Claim to role
+      - description: Attribute to role
         in: body
-        name: claimToRole
+        name: attributeToRole
         required: true
         schema:
-          $ref: '#/definitions/storage.ClaimToRolesConfig'
+          $ref: '#/definitions/storage.AttributeToRolesConfig'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/storage.ClaimToRolesConfig'
+            $ref: '#/definitions/storage.AttributeToRolesConfig'
         "400":
           description: Bad Request
           schema:
@@ -155,23 +173,23 @@ paths:
             type: object
       security:
       - Authentication: []
-      summary: Upsert a claim to role
+      summary: Upsert a attribute to role
       tags:
-      - claim to roles
-  /v1/admin/claim-to-roles/{claimKey}/{claimValue}:
+      - attribute to roles
+  /v1/admin/attribute-to-roles/{attributeKey}/{attributeValue}:
     delete:
       consumes:
       - application/json
-      description: Delete a claim to role
+      description: Delete a attribute to role
       parameters:
-      - description: Claim key
+      - description: Attribute key
         in: path
-        name: claimKey
+        name: attributeKey
         required: true
         type: string
-      - description: Claim value
+      - description: Attribute value
         in: path
-        name: claimValue
+        name: attributeValue
         required: true
         type: string
       produces:
@@ -197,9 +215,9 @@ paths:
             type: object
       security:
       - Authentication: []
-      summary: Delete a claim to role
+      summary: Delete a attribute to role
       tags:
-      - claim to roles
+      - attribute to roles
   /v1/admin/proxies:
     get:
       consumes:

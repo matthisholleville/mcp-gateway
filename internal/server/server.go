@@ -22,6 +22,7 @@ import (
 	"github.com/matthisholleville/mcp-gateway/internal/metrics"
 	"github.com/matthisholleville/mcp-gateway/internal/proxy"
 	"github.com/matthisholleville/mcp-gateway/internal/storage"
+	"github.com/matthisholleville/mcp-gateway/pkg/aescipher"
 	"github.com/matthisholleville/mcp-gateway/pkg/logger"
 	_ "github.com/matthisholleville/mcp-gateway/swagger" // We need to import the swagger documentation
 	echoSwagger "github.com/swaggo/echo-swagger"
@@ -43,12 +44,13 @@ import (
 //	@schemes	http https
 
 type Server struct {
-	Router  *echo.Echo
-	Logger  logger.Logger
-	Config  *cfg.Config
-	Live    *int32
-	Ready   *int32
-	Storage storage.StorageInterface
+	Router    *echo.Echo
+	Logger    logger.Logger
+	Config    *cfg.Config
+	Live      *int32
+	Ready     *int32
+	Storage   storage.StorageInterface
+	Encryptor aescipher.Cryptor
 }
 
 func NewServer(
@@ -64,6 +66,7 @@ func NewServer(
 	}
 
 	s.configureRouter()
+	s.configureEncryption()
 	s.configureStorage()
 	s.configureMetrics()
 	s.registerHealthcheckRoutes()
@@ -165,7 +168,6 @@ func (s *Server) configureMetrics() {
 		s.Logger.Error("Failed to register metrics", zap.Error(err))
 	}
 	s.Router.GET("/metrics", echoprometheus.NewHandler())
-
 }
 
 // configureMCP configures the MCP endpoint
@@ -199,9 +201,14 @@ func (s *Server) addProxyTools(mcpServer *server.MCPServer) {
 		for {
 			time.Sleep(s.Config.Proxy.CacheTTL)
 			s.Logger.Info("Refreshing MCP proxies")
-			proxies, err := s.Storage.ListProxies(context.Background())
+			proxies, err := s.Storage.ListProxies(context.Background(), true)
 			if err != nil {
 				s.Logger.Error("Failed to get MCP proxies", zap.Error(err))
+				continue
+			}
+			if len(proxies) == 0 {
+				s.Logger.Info("No MCP proxies found. Deleting all tools.")
+				mcpServer.DeleteTools()
 				continue
 			}
 			mcpProxy, err := proxy.NewProxy(&proxies, s.Logger)
@@ -225,7 +232,6 @@ func (s *Server) addProxyTools(mcpServer *server.MCPServer) {
 			}
 		}
 	}()
-
 }
 
 // mcpHooks configures the MCP hooks
@@ -331,7 +337,6 @@ func (s *Server) configureAuthMiddleware() {
 
 	s.Router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-
 			isMCPPath := c.Path() == "/mcp" && c.Request().Method == "POST"
 			if !isMCPPath {
 				return next(c)
@@ -401,7 +406,7 @@ func (s *Server) configureStorage() {
 	if s.Config.BackendConfig.Engine == "memory" {
 		s.Logger.Warn("Using memory storage. This is not recommended for production.")
 	}
-	storage, err := storage.NewStorage(context.Background(), s.Config.BackendConfig.Engine, "")
+	storage, err := storage.NewStorage(context.Background(), s.Config.BackendConfig.Engine, "", s.Logger, s.Config, s.Encryptor)
 	if err != nil {
 		s.Logger.Error("Failed to create storage", zap.Error(err))
 		panic(err)
@@ -414,7 +419,17 @@ func (s *Server) configureSwaggerRoutes() {
 	s.Router.GET("/swagger/*", echoSwagger.WrapHandler)
 }
 
+func (s *Server) configureEncryption() {
+	encryptor, err := aescipher.New(s.Config.BackendConfig.EncryptionKey)
+	if err != nil {
+		s.Logger.Error("Failed to create encryptor mandatory for backend data encryption", zap.Error(err))
+		panic(err)
+	}
+	s.Encryptor = encryptor
+}
+
 func (s *Server) configureV1Routes() {
+
 	v1 := s.Router.Group("/v1")
 	v1.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

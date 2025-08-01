@@ -190,11 +190,11 @@ func (p *proxy) GetName() string {
 
 func openStreamableHTTPProxy(proxyConfig *storage.ProxyConfig, logger logger.Logger) (*transport.StreamableHTTP, error) {
 	ctx := context.Background()
-	endpoint := proxyConfig.Connection.URL
+	endpoint := proxyConfig.URL
 
 	headers := map[string]string{}
-	if proxyConfig.Auth.Type == "header" {
-		headers[proxyConfig.Auth.Header] = proxyConfig.Auth.Value
+	for _, header := range proxyConfig.Headers {
+		headers[header.Key] = header.Value
 	}
 
 	timeout := defaultTimeout

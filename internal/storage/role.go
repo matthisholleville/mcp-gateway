@@ -14,6 +14,10 @@ const (
 	ObjectTypeAll   ObjectType = "*"
 )
 
+func (o ObjectType) IsValid() bool {
+	return o == ObjectTypeTools || o == ObjectTypeAll
+}
+
 type PermissionConfig struct {
 	ObjectType ObjectType `json:"object_type"`
 	Proxy      string     `json:"proxy"`

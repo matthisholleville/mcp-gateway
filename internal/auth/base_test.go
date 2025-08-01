@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initData(t *testing.T, claimToRoles []storage.ClaimToRolesConfig, roles []storage.RoleConfig) storage.StorageInterface {
+func initData(t *testing.T, attributeToRoles []storage.AttributeToRolesConfig, roles []storage.RoleConfig) storage.StorageInterface {
 	engine := storage.NewMemoryStorage("")
 	for _, role := range roles {
 		err := engine.SetRole(context.Background(), role)
@@ -18,10 +18,10 @@ func initData(t *testing.T, claimToRoles []storage.ClaimToRolesConfig, roles []s
 			t.Fatalf("Failed to set role: %v", err)
 		}
 	}
-	for _, claimToRole := range claimToRoles {
-		err := engine.SetClaimToRoles(context.Background(), claimToRole)
+	for _, attributeToRole := range attributeToRoles {
+		err := engine.SetAttributeToRoles(context.Background(), attributeToRole)
 		if err != nil {
-			t.Fatalf("Failed to set claim to roles: %v", err)
+			t.Fatalf("Failed to set attribute to roles: %v", err)
 		}
 	}
 
@@ -29,25 +29,25 @@ func initData(t *testing.T, claimToRoles []storage.ClaimToRolesConfig, roles []s
 }
 
 func initLogger() logger.Logger {
-	return logger.MustNewLogger("test", "debug", "test")
+	return logger.MustNewLogger("json", "debug", "test")
 }
 
 func TestBaseProvider_ClaimToRoles(t *testing.T) {
 	fmt.Println("TestBaseProvider_ClaimToRoles")
 	for _, test := range []struct {
-		name         string
-		claimToRoles []storage.ClaimToRolesConfig
-		roles        []storage.RoleConfig
-		endWithError bool
-		expected     []string
+		name             string
+		attributeToRoles []storage.AttributeToRolesConfig
+		roles            []storage.RoleConfig
+		endWithError     bool
+		expected         []string
 	}{
 		{
 			name: "Admin",
-			claimToRoles: []storage.ClaimToRolesConfig{
+			attributeToRoles: []storage.AttributeToRolesConfig{
 				{
-					ClaimKey:   "Groups",
-					ClaimValue: "group1",
-					Roles:      []string{"Admin"},
+					AttributeKey:   "Groups",
+					AttributeValue: "group1",
+					Roles:          []string{"Admin"},
 				},
 			},
 			roles: []storage.RoleConfig{
@@ -66,21 +66,21 @@ func TestBaseProvider_ClaimToRoles(t *testing.T) {
 			expected:     []string{"Admin"},
 		},
 		{
-			name:         "Empty data",
-			claimToRoles: []storage.ClaimToRolesConfig{},
-			roles:        []storage.RoleConfig{},
-			endWithError: false,
-			expected:     []string{},
+			name:             "Empty data",
+			attributeToRoles: []storage.AttributeToRolesConfig{},
+			roles:            []storage.RoleConfig{},
+			endWithError:     false,
+			expected:         []string{},
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			engine := initData(t, test.claimToRoles, test.roles)
+			engine := initData(t, test.attributeToRoles, test.roles)
 			logger := initLogger()
 			provider := BaseProvider{
 				storage: engine,
 				logger:  logger,
 			}
-			claimToRoles, err := provider.claimsToRoles(context.Background(), map[string]interface{}{
+			attributeToRoles, err := provider.attributeToRoles(context.Background(), map[string]interface{}{
 				"email":          "test@test.com",
 				"auth_time":      1717000000,
 				"email_verified": false,
@@ -91,7 +91,7 @@ func TestBaseProvider_ClaimToRoles(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, test.expected, claimToRoles)
+				assert.Equal(t, test.expected, attributeToRoles)
 			}
 		})
 	}
@@ -100,22 +100,22 @@ func TestBaseProvider_ClaimToRoles(t *testing.T) {
 func TestBaseProvider_VerifyPermissions(t *testing.T) {
 	fmt.Println("TestBaseProvider_VerifyPermissions")
 	for _, test := range []struct {
-		name         string
-		claimToRoles []storage.ClaimToRolesConfig
-		roles        []storage.RoleConfig
-		objectType   string
-		objectName   string
-		proxy        string
-		claims       map[string]interface{}
-		expected     bool
+		name             string
+		attributeToRoles []storage.AttributeToRolesConfig
+		roles            []storage.RoleConfig
+		objectType       string
+		objectName       string
+		proxy            string
+		claims           map[string]interface{}
+		expected         bool
 	}{
 		{
 			name: "Authorized: Admin",
-			claimToRoles: []storage.ClaimToRolesConfig{
+			attributeToRoles: []storage.AttributeToRolesConfig{
 				{
-					ClaimKey:   "Groups",
-					ClaimValue: "group1",
-					Roles:      []string{"Admin"},
+					AttributeKey:   "Groups",
+					AttributeValue: "group1",
+					Roles:          []string{"Admin"},
 				},
 			},
 			roles: []storage.RoleConfig{
@@ -140,11 +140,11 @@ func TestBaseProvider_VerifyPermissions(t *testing.T) {
 		},
 		{
 			name: "Unauthorized: Tools Admin requested prompts",
-			claimToRoles: []storage.ClaimToRolesConfig{
+			attributeToRoles: []storage.AttributeToRolesConfig{
 				{
-					ClaimKey:   "Groups",
-					ClaimValue: "group1",
-					Roles:      []string{"ToolsAdmin"},
+					AttributeKey:   "Groups",
+					AttributeValue: "group1",
+					Roles:          []string{"ToolsAdmin"},
 				},
 			},
 			roles: []storage.RoleConfig{
@@ -168,12 +168,12 @@ func TestBaseProvider_VerifyPermissions(t *testing.T) {
 			},
 		},
 		{
-			name: "Unauthorized: User with no role in claim to roles",
-			claimToRoles: []storage.ClaimToRolesConfig{
+			name: "Unauthorized: User with no role in attribute to roles",
+			attributeToRoles: []storage.AttributeToRolesConfig{
 				{
-					ClaimKey:   "Groups",
-					ClaimValue: "group1",
-					Roles:      []string{"Admin"},
+					AttributeKey:   "Groups",
+					AttributeValue: "group1",
+					Roles:          []string{"Admin"},
 				},
 			},
 			roles: []storage.RoleConfig{
@@ -198,7 +198,7 @@ func TestBaseProvider_VerifyPermissions(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			engine := initData(t, test.claimToRoles, test.roles)
+			engine := initData(t, test.attributeToRoles, test.roles)
 			logger := initLogger()
 			provider := BaseProvider{
 				storage: engine,

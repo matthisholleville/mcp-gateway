@@ -11,7 +11,7 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-.PHONY: help run build clean test lint fmt vet deps install serve dev check mocks swagger envrc-sample check-envrc helm-docs
+.PHONY: help run build clean test lint fmt vet deps install serve dev check mocks swagger envrc-sample check-envrc helm-docs create-migration
 
 ## help: Show this help
 help:
@@ -24,7 +24,8 @@ help:
 ## serve: Run the application in server mode with debug configuration
 serve:
 	@echo "$(YELLOW)Starting server in debug mode...$(RESET)"
-	go run main.go serve --log-format=text --log-level=debug
+	go run main.go serve --log-format=text --log-level=debug --http-admin-api-key=admin --backend-engine=postgres --backend-uri='postgresql://mcp-gateway:changeme@localhost:5439/mcp-gateway?sslmode=disable' --backend-encryption-key=0123456789abcdeffedcba9876543210cafebabefacefeeddeadbeef00112233
+
 
 ## dev: Alias for serve (for development)
 dev: serve
@@ -203,6 +204,14 @@ helm-docs:
 	@echo "$(YELLOW)Generating Helm documentation...$(RESET)"
 	helm-docs --chart-search-root=./charts/mcp-gateway --template-files=README.md.gotmpl
 	@echo "$(GREEN)✓ Helm documentation generated$(RESET)"
+
+## create-migration: Create a new migration file
+create-migration:
+	@if [ -z "$(name)" ]; then \
+		echo "Error: name parameter is required. Usage: make create-migration name=your_migration_name"; \
+		exit 1; \
+	fi
+	migrate create -ext sql -dir "./assets/migrations/postgres" -seq "$(name)"
 
 # Default rule
 .DEFAULT_GOAL := help

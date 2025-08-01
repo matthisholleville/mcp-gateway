@@ -17,6 +17,8 @@ type Logger interface {
 	Panic(string, ...zap.Field)
 	Fatal(string, ...zap.Field)
 	With(...zap.Field) Logger
+	Printf(string, ...interface{})
+	Verbose() bool
 
 	// These are the equivalent logger function but with context provided
 	DebugWithContext(context.Context, string, ...zap.Field)
@@ -71,6 +73,14 @@ func (l *ZapLogger) Panic(msg string, fields ...zap.Field) {
 
 func (l *ZapLogger) Fatal(msg string, fields ...zap.Field) {
 	l.Logger.Fatal(msg, fields...)
+}
+
+func (l *ZapLogger) Printf(format string, v ...interface{}) {
+	l.Logger.Info(fmt.Sprintf(format, v...))
+}
+
+func (l *ZapLogger) Verbose() bool {
+	return true
 }
 
 func (l *ZapLogger) DebugWithContext(ctx context.Context, msg string, fields ...zap.Field) {

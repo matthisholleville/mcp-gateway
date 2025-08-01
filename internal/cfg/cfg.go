@@ -92,6 +92,9 @@ type BackendConfig struct {
 
 	// ConnMaxLifetime is the maximum amount of time a connection to the datastore may be reused.
 	ConnMaxLifetime time.Duration
+
+	// EncryptionKey is the key used to encrypt and decrypt data.
+	EncryptionKey string `json:"-"` // private field, won't be logged
 }
 
 func DefaultConfig() *Config {
@@ -133,19 +136,24 @@ func DefaultConfig() *Config {
 			},
 		},
 		BackendConfig: &BackendConfig{
-			Engine: "memory",
+			Engine:       "memory",
+			MaxOpenConns: 30,
+			MaxIdleConns: 10,
 		},
 	}
 }
 
 func (cfg *Config) Verify() error {
-
 	if cfg.Proxy.CacheTTL <= 5*time.Second {
 		return fmt.Errorf("proxy cache TTL must be greater than 5 seconds")
 	}
 
 	if cfg.Proxy.Heartbeat.IntervalSeconds <= 5*time.Second {
 		return fmt.Errorf("proxy heartbeat interval must be greater than 5 seconds")
+	}
+
+	if cfg.BackendConfig.EncryptionKey == "" {
+		return fmt.Errorf("encryption key is required")
 	}
 
 	return nil

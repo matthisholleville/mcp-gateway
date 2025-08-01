@@ -9,15 +9,17 @@ import (
 
 func TestMemoryProxyStorage(t *testing.T) {
 	storage := NewMemoryStorage("")
-	proxy := ProxyConfig{Name: "test", Type: ProxyTypeStreamableHTTP}
-	err := storage.SetProxy(context.Background(), proxy)
+	proxy := ProxyConfig{Name: "test", Type: ProxyTypeStreamableHTTP, AuthType: ProxyAuthTypeHeader, Headers: []ProxyHeader{
+		{Key: "test", Value: "test"},
+	}}
+	err := storage.SetProxy(context.Background(), proxy, false)
 	assert.NoError(t, err)
-	proxy, err = storage.GetProxy(context.Background(), proxy)
+	proxy, err = storage.GetProxy(context.Background(), proxy.Name, false)
 	assert.NoError(t, err)
 	assert.Equal(t, proxy.Name, "test")
 	err = storage.DeleteProxy(context.Background(), proxy)
 	assert.NoError(t, err)
-	proxy, err = storage.GetProxy(context.Background(), proxy)
+	proxy, err = storage.GetProxy(context.Background(), proxy.Name, false)
 	assert.Error(t, err)
 	assert.Equal(t, proxy.Name, "")
 }
@@ -62,8 +64,8 @@ func TestMemoryStorageRoles(t *testing.T) {
 
 func TestMemoryStorageClaimToRoles(t *testing.T) {
 	storage := NewMemoryStorage("")
-	claimToRoles := ClaimToRolesConfig{ClaimKey: "email", ClaimValue: "test@test.com", Roles: []string{"test"}}
-	err := storage.SetClaimToRoles(context.Background(), claimToRoles)
+	attributeToRoles := AttributeToRolesConfig{AttributeKey: "email", AttributeValue: "test@test.com", Roles: []string{"test"}}
+	err := storage.SetAttributeToRoles(context.Background(), attributeToRoles)
 	assert.Error(t, err, "role not found")
 	role := RoleConfig{Name: "test", Permissions: []PermissionConfig{
 		{
@@ -74,13 +76,13 @@ func TestMemoryStorageClaimToRoles(t *testing.T) {
 	}}
 	err = storage.SetRole(context.Background(), role)
 	assert.NoError(t, err)
-	err = storage.SetClaimToRoles(context.Background(), claimToRoles)
+	err = storage.SetAttributeToRoles(context.Background(), attributeToRoles)
 	assert.NoError(t, err)
-	err = storage.SetClaimToRoles(context.Background(), claimToRoles)
-	assert.Error(t, err, "claim to roles already exists")
-	claimToRolesList, err := storage.ListClaimToRoles(context.Background())
+	err = storage.SetAttributeToRoles(context.Background(), attributeToRoles)
+	assert.Error(t, err, "attribute to roles already exists")
+	attributeToRolesList, err := storage.ListAttributeToRoles(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, claimToRolesList, []ClaimToRolesConfig{claimToRoles})
-	err = storage.DeleteClaimToRoles(context.Background(), claimToRoles.ClaimKey, claimToRoles.ClaimValue)
+	assert.Equal(t, attributeToRolesList, []AttributeToRolesConfig{attributeToRoles})
+	err = storage.DeleteAttributeToRoles(context.Background(), attributeToRoles.AttributeKey, attributeToRoles.AttributeValue)
 	assert.NoError(t, err)
 }
