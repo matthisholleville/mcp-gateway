@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initData(t *testing.T, attributeToRoles []storage.AttributeToRolesConfig, roles []storage.RoleConfig) storage.StorageInterface {
+func initData(t *testing.T, attributeToRoles []storage.AttributeToRolesConfig, roles []storage.RoleConfig) storage.Interface {
 	engine := storage.NewMemoryStorage("")
 	for _, role := range roles {
 		err := engine.SetRole(context.Background(), role)
@@ -80,19 +80,14 @@ func TestBaseProvider_ClaimToRoles(t *testing.T) {
 				storage: engine,
 				logger:  logger,
 			}
-			attributeToRoles, err := provider.attributeToRoles(context.Background(), map[string]interface{}{
+			attributeToRoles := provider.attributeToRoles(context.Background(), map[string]interface{}{
 				"email":          "test@test.com",
 				"auth_time":      1717000000,
 				"email_verified": false,
 				"identities":     map[string]string{"google.com": "test@test.com"},
 				"Groups":         []string{"group1", "group2"},
 			})
-			if test.endWithError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, test.expected, attributeToRoles)
-			}
+			assert.Equal(t, test.expected, attributeToRoles)
 		})
 	}
 }

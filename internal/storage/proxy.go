@@ -1,3 +1,4 @@
+// Package storage provides a storage interface for the MCP Gateway.
 package storage
 
 import (
@@ -47,6 +48,6 @@ type ProxyOAuth struct {
 type ProxyInterface interface {
 	GetProxy(ctx context.Context, proxy string, decrypt bool) (ProxyConfig, error)
 	ListProxies(ctx context.Context, decrypt bool) ([]ProxyConfig, error)
-	SetProxy(ctx context.Context, proxy ProxyConfig, encrypt bool) error
-	DeleteProxy(ctx context.Context, proxy ProxyConfig) error
+	SetProxy(ctx context.Context, proxy *ProxyConfig, encrypt bool) error
+	DeleteProxy(ctx context.Context, proxy string) error
 }

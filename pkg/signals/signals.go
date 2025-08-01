@@ -1,3 +1,6 @@
+// Package signals provides a signal handler for the MCP Gateway.
+// It is used to handle SIGTERM and SIGINT signals and close the MCP Gateway.
+// It is used to handle SIGTERM and SIGINT signals and close the MCP Gateway.
 package signals
 
 import (

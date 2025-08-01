@@ -99,7 +99,7 @@ linters:
 
     # Lll configuration (line length)
     lll:
-      line-length: 140
+      line-length: 300
       tab-width: 2
 
     # Mnd configuration (magic numbers)

@@ -1,0 +1,9 @@
+# This is a sample environment file
+# Copy this to .envrc and fill in your actual values
+# DO NOT commit .envrc with real values!
+
+export MCP_GATEWAY_OKTA_PRIVATE_KEY="***REDACTED_FILE_CONTENT***"
+export MCP_GATEWAY_OKTA_PRIVATE_KEY_ID="***REDACTED***"
+export MCP_GATEWAY_OKTA_CLIENT_ID="***REDACTED***"   
+export MCP_GATEWAY_OKTA_ORG_URL="***REDACTED***"
+export MCP_GATEWAY_OKTA_ISSUER="***REDACTED***"

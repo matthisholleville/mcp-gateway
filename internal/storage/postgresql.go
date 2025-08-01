@@ -17,6 +17,7 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
+// PostgresStorage is a storage implementation for Postgres.
 type PostgresStorage struct {
 	BaseStorage
 	db        *gorm.DB
@@ -24,6 +25,9 @@ type PostgresStorage struct {
 	logger    logger.Logger
 }
 
+// NewPostgresStorage creates a new Postgres storage instance.
+//
+//nolint:gocritic // we need to keep logger as a parameter for the function
 func NewPostgresStorage(defaultScope string, logger logger.Logger, cfg *cfg.Config, encryptor aescipher.Cryptor) (*PostgresStorage, error) {
 	gormLogger := gormlogger.New(logger, gormlogger.Config{
 		LogLevel: gormlogger.Warn,
@@ -51,14 +55,18 @@ func NewPostgresStorage(defaultScope string, logger logger.Logger, cfg *cfg.Conf
 		BaseStorage: BaseStorage{defaultScope: defaultScope},
 		db:          db,
 		encryptor:   encryptor,
+		logger:      logger,
 	}, nil
 }
 
-func (s *PostgresStorage) GetDefaultScope(ctx context.Context) string {
+// GetDefaultScope gets the default scope from the Postgres storage.
+func (s *PostgresStorage) GetDefaultScope(_ context.Context) string {
 	return s.defaultScope
 }
 
+// GetProxy gets a proxy from the Postgres storage.
 func (s *PostgresStorage) GetProxy(ctx context.Context, name string, decrypt bool) (ProxyConfig, error) {
+	s.logger.Debug("GetProxy", zap.String("name", name), zap.Bool("decrypt", decrypt))
 	const q = `
 		SELECT
 			p.name,
@@ -110,6 +118,14 @@ func (s *PostgresStorage) GetProxy(ctx context.Context, name string, decrypt boo
 	var hdrs []ProxyHeader
 	_ = json.Unmarshal(row.HeadersJSON, &hdrs)
 
+	if decrypt {
+		hdrs, err := s.decryptHeaders(hdrs)
+		if err != nil {
+			return ProxyConfig{}, err
+		}
+		row.HeadersJSON, _ = json.Marshal(hdrs)
+	}
+
 	var oauth *ProxyOAuth
 	if len(row.OAuthJSON) > 0 && string(row.OAuthJSON) != "null" {
 		oauth = new(ProxyOAuth)
@@ -127,7 +143,9 @@ func (s *PostgresStorage) GetProxy(ctx context.Context, name string, decrypt boo
 	}, nil
 }
 
+// ListProxies lists all proxies from the Postgres storage.
 func (s *PostgresStorage) ListProxies(ctx context.Context, decrypt bool) ([]ProxyConfig, error) {
+	s.logger.Debug("ListProxies", zap.Bool("decrypt", decrypt))
 	const q = `
 		SELECT
 			p.name,
@@ -174,7 +192,7 @@ func (s *PostgresStorage) ListProxies(ctx context.Context, decrypt bool) ([]Prox
 		return nil, err
 	}
 
-	var out []ProxyConfig
+	out := make([]ProxyConfig, 0, len(rows))
 	for _, r := range rows {
 		var hdrs []ProxyHeader
 		_ = json.Unmarshal(r.HeadersJSON, &hdrs)
@@ -198,31 +216,37 @@ func (s *PostgresStorage) ListProxies(ctx context.Context, decrypt bool) ([]Prox
 
 	if decrypt {
 		for i, p := range out {
-			out[i].Headers = make([]ProxyHeader, len(p.Headers))
-			for j, h := range p.Headers {
-				value, err := s.decryptIfNeeded(h.Value)
-				if err != nil {
-					s.logger.Error("Failed to decrypt header value", zap.Error(err))
-					continue
-				}
-				out[i].Headers[j].Key = h.Key
-				out[i].Headers[j].Value = value
+			hdrs, err := s.decryptHeaders(p.Headers)
+			if err != nil {
+				return nil, err
 			}
+			out[i].Headers = hdrs
 		}
 	}
 	return out, nil
 }
 
-func (s *PostgresStorage) SetProxy(ctx context.Context, p ProxyConfig, encrypt bool) error {
-	if !p.Type.IsValid() {
-		return fmt.Errorf("invalid proxy type: %s", p.Type)
+// decryptHeaders decrypts the headers of a proxy.
+func (s *PostgresStorage) decryptHeaders(headers []ProxyHeader) ([]ProxyHeader, error) {
+	for i, h := range headers {
+		value, err := s.decryptIfNeeded(h.Value)
+		if err != nil {
+			return nil, err
+		}
+		headers[i].Key = h.Key
+		headers[i].Value = value
 	}
-	if !p.AuthType.IsValid() {
-		return fmt.Errorf("invalid proxy auth type: %s", p.AuthType)
+	return headers, nil
+}
+
+// SetProxy sets a proxy in the Postgres storage.
+func (s *PostgresStorage) SetProxy(ctx context.Context, p *ProxyConfig, encrypt bool) error {
+	s.logger.Debug("SetProxy", zap.Any("proxy", p.Name), zap.Bool("encrypt", encrypt))
+	if err := s.validateSetProxy(p); err != nil {
+		return err
 	}
 
 	if encrypt {
-		fmt.Println("hey")
 		for i, h := range p.Headers {
 			value, err := s.encryptIfNeeded(h.Value)
 			if err != nil {
@@ -272,7 +296,7 @@ func (s *PostgresStorage) SetProxy(ctx context.Context, p ProxyConfig, encrypt b
 		}
 
 		if p.OAuth != nil {
-			if err := tx.Exec(`
+			return tx.Exec(`
 				INSERT INTO mcp_gateway.proxy_oauth (proxyname, clientid, clientsecret,
 				                                     tokenendpoint, scopes)
 				VALUES ($1,$2,$3,$4,$5)
@@ -282,19 +306,25 @@ func (s *PostgresStorage) SetProxy(ctx context.Context, p ProxyConfig, encrypt b
 				      tokenendpoint = EXCLUDED.tokenendpoint,
 				      scopes        = EXCLUDED.scopes
 			`, p.Name, p.OAuth.ClientID, p.OAuth.ClientSecret,
-				p.OAuth.TokenEndpoint, p.OAuth.Scopes).Error; err != nil {
-				return err
-			}
-		} else {
-			if err := tx.Exec(`DELETE FROM mcp_gateway.proxy_oauth WHERE proxyname = $1`, p.Name).Error; err != nil {
-				return err
-			}
+				p.OAuth.TokenEndpoint, p.OAuth.Scopes).Error
 		}
-		return nil
+		return tx.Exec(`DELETE FROM mcp_gateway.proxy_oauth WHERE proxyname = $1`, p.Name).Error
 	})
 }
 
-func (s *PostgresStorage) DeleteProxy(ctx context.Context, proxy ProxyConfig) error {
+func (s *PostgresStorage) validateSetProxy(p *ProxyConfig) error {
+	if !p.Type.IsValid() {
+		return fmt.Errorf("invalid proxy type: %s", p.Type)
+	}
+	if !p.AuthType.IsValid() {
+		return fmt.Errorf("invalid proxy auth type: %s", p.AuthType)
+	}
+	return nil
+}
+
+// DeleteProxy deletes a proxy from the Postgres storage.
+func (s *PostgresStorage) DeleteProxy(ctx context.Context, proxy string) error {
+	s.logger.Debug("DeleteProxy", zap.Any("proxy", proxy))
 	tx := s.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
 		return tx.Error
@@ -303,7 +333,7 @@ func (s *PostgresStorage) DeleteProxy(ctx context.Context, proxy ProxyConfig) er
 
 	tx = tx.Exec(`
         DELETE FROM mcp_gateway.proxy WHERE name = $1
-    `, proxy.Name)
+    `, proxy)
 	if tx.Error != nil {
 		return tx.Error
 	}
@@ -311,7 +341,9 @@ func (s *PostgresStorage) DeleteProxy(ctx context.Context, proxy ProxyConfig) er
 	return tx.Commit().Error
 }
 
+// GetRole gets a role from the Postgres storage.
 func (s *PostgresStorage) GetRole(ctx context.Context, role string) (RoleConfig, error) {
+	s.logger.Debug("GetRole", zap.String("role", role))
 	query := `
 		SELECT 
 			r.name,
@@ -328,7 +360,7 @@ func (s *PostgresStorage) GetRole(ctx context.Context, role string) (RoleConfig,
 	if err != nil {
 		return RoleConfig{}, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck // no need to check the error here
 
 	var result RoleConfig
 	var permissions []PermissionConfig
@@ -372,7 +404,9 @@ func (s *PostgresStorage) GetRole(ctx context.Context, role string) (RoleConfig,
 	return result, nil
 }
 
+// SetRole sets a role in the Postgres storage.
 func (s *PostgresStorage) SetRole(ctx context.Context, role RoleConfig) error {
+	s.logger.Debug("SetRole", zap.Any("role", role.Name))
 	for _, p := range role.Permissions {
 		if !p.ObjectType.IsValid() {
 			return fmt.Errorf("invalid object type: %s", p.ObjectType)
@@ -404,7 +438,7 @@ func (s *PostgresStorage) SetRole(ctx context.Context, role RoleConfig) error {
 			objNames[i] = p.ObjectName
 		}
 
-		if err := tx.Exec(`
+		return tx.Exec(`
 			WITH data AS (
 				SELECT
 					$1::varchar AS rolename,
@@ -423,14 +457,13 @@ func (s *PostgresStorage) SetRole(ctx context.Context, role RoleConfig) error {
 			  AND (objecttype, proxyname, objectname)
 			      NOT IN (SELECT objecttype, proxyname, objectname FROM up)
 		`, role.Name,
-			pq.Array(objTypes), pq.Array(proxies), pq.Array(objNames)).Error; err != nil {
-			return err
-		}
-		return nil
+			pq.Array(objTypes), pq.Array(proxies), pq.Array(objNames)).Error
 	})
 }
 
+// DeleteRole deletes a role from the Postgres storage.
 func (s *PostgresStorage) DeleteRole(ctx context.Context, role string) error {
+	s.logger.Debug("DeleteRole", zap.String("role", role))
 	tx := s.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
 		return tx.Error
@@ -446,6 +479,7 @@ func (s *PostgresStorage) DeleteRole(ctx context.Context, role string) error {
 }
 
 func (s *PostgresStorage) ListRoles(ctx context.Context) ([]RoleConfig, error) {
+	s.logger.Debug("ListRoles")
 	const q = `
 		SELECT
 			r.name,
@@ -483,9 +517,11 @@ func (s *PostgresStorage) ListRoles(ctx context.Context) ([]RoleConfig, error) {
 	return out, nil
 }
 
+// SetAttributeToRoles sets an attribute to roles in the Postgres storage.
 func (s *PostgresStorage) SetAttributeToRoles(ctx context.Context, at AttributeToRolesConfig) error {
+	s.logger.Debug("SetAttributeToRoles", zap.Any("attributeToRoles", at))
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(`
+		return tx.Exec(`
 			WITH data AS (
 				SELECT
 					$1::text  AS attributekey,
@@ -502,14 +538,13 @@ func (s *PostgresStorage) SetAttributeToRoles(ctx context.Context, at AttributeT
 			WHERE attributekey  = $1
 			  AND attributevalue = $2
 			  AND rolename NOT IN (SELECT rolename FROM up)
-		`, at.AttributeKey, at.AttributeValue, pq.Array(at.Roles)).Error; err != nil {
-			return err
-		}
-		return nil
+		`, at.AttributeKey, at.AttributeValue, pq.Array(at.Roles)).Error
 	})
 }
 
+// GetAttributeToRoles gets an attribute to roles from the Postgres storage.
 func (s *PostgresStorage) GetAttributeToRoles(ctx context.Context, attributeKey, attributeValue string) (AttributeToRolesConfig, error) {
+	s.logger.Debug("GetAttributeToRoles", zap.String("attributeKey", attributeKey), zap.String("attributeValue", attributeValue))
 	query := `
 		SELECT rolename 
 		FROM mcp_gateway.attribute_to_roles 
@@ -521,7 +556,7 @@ func (s *PostgresStorage) GetAttributeToRoles(ctx context.Context, attributeKey,
 	if err != nil {
 		return AttributeToRolesConfig{}, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck // no need to check the error here
 
 	var roles []string
 	for rows.Next() {
@@ -547,7 +582,9 @@ func (s *PostgresStorage) GetAttributeToRoles(ctx context.Context, attributeKey,
 	}, nil
 }
 
+// ListAttributeToRoles lists all attribute to roles from the Postgres storage.
 func (s *PostgresStorage) ListAttributeToRoles(ctx context.Context) ([]AttributeToRolesConfig, error) {
+	s.logger.Debug("ListAttributeToRoles")
 	query := `
 		SELECT attributekey, attributevalue, rolename 
 		FROM mcp_gateway.attribute_to_roles 
@@ -558,7 +595,7 @@ func (s *PostgresStorage) ListAttributeToRoles(ctx context.Context) ([]Attribute
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck // no need to check the error here
 
 	var attributeToRoles []AttributeToRolesConfig
 	var current *AttributeToRolesConfig
@@ -606,7 +643,9 @@ func (s *PostgresStorage) ListAttributeToRoles(ctx context.Context) ([]Attribute
 	return attributeToRoles, nil
 }
 
+// DeleteAttributeToRoles deletes an attribute to roles from the Postgres storage.
 func (s *PostgresStorage) DeleteAttributeToRoles(ctx context.Context, attributeKey, attributeValue string) error {
+	s.logger.Debug("DeleteAttributeToRoles", zap.String("attributeKey", attributeKey), zap.String("attributeValue", attributeValue))
 	tx := s.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
 		return tx.Error
@@ -625,6 +664,7 @@ func (s *PostgresStorage) DeleteAttributeToRoles(ctx context.Context, attributeK
 	return tx.Commit().Error
 }
 
+// encryptIfNeeded encrypts a value if needed.
 func (s *PostgresStorage) encryptIfNeeded(value string) (string, error) {
 	fmt.Println("encryptIfNeeded", value, s.encryptor.IsEncryptedString(value))
 	if s.encryptor.IsEncryptedString(value) {
@@ -634,6 +674,7 @@ func (s *PostgresStorage) encryptIfNeeded(value string) (string, error) {
 	return s.encryptor.EncryptString(value)
 }
 
+// decryptIfNeeded decrypts a value if needed.
 func (s *PostgresStorage) decryptIfNeeded(value string) (string, error) {
 	if s.encryptor.IsEncryptedString(value) {
 		return s.encryptor.DecryptString(value)

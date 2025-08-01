@@ -14,7 +14,7 @@ import (
 // BaseProvider is the base provider for the MCP Gateway
 type BaseProvider struct {
 	logger  logger.Logger
-	storage storage.StorageInterface
+	storage storage.Interface
 }
 
 // VerifyPermissions verifies the permissions of a user for a tool
@@ -23,13 +23,7 @@ func (b *BaseProvider) VerifyPermissions(
 	objectType, proxy, objectName string,
 	claims map[string]interface{},
 ) bool {
-	roles, err := b.attributeToRoles(ctx, claims)
-	if err != nil || len(roles) == 0 {
-		if err != nil {
-			b.logger.Error("attributeToRoles failed", zap.Error(err))
-		}
-		return false
-	}
+	roles := b.attributeToRoles(ctx, claims)
 
 	// Resolve all roles in parallel ‑ stored in a thread‑safe slice.
 	type rolePerm struct {
@@ -85,7 +79,7 @@ func (b *BaseProvider) match(pattern, value string) bool {
 func (b *BaseProvider) attributeToRoles(
 	ctx context.Context,
 	claims map[string]interface{},
-) ([]string, error) {
+) []string {
 	out := make(map[string]struct{}) // set
 
 	for claim, raw := range claims {
@@ -117,7 +111,7 @@ func (b *BaseProvider) attributeToRoles(
 	for r := range out {
 		roles = append(roles, r)
 	}
-	return roles, nil
+	return roles
 }
 
 func (b *BaseProvider) lookup(

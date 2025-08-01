@@ -17,18 +17,23 @@ type BaseStorage struct {
 	defaultScope string
 }
 
-func (b *BaseStorage) GetDefaultScope(ctx context.Context) string {
+// GetDefaultScope gets the default scope from the base storage.
+func (b *BaseStorage) GetDefaultScope(_ context.Context) string {
 	return b.defaultScope
 }
 
-type StorageInterface interface {
+// Interface is an interface that provides a storage interface for the MCP Gateway.
+type Interface interface {
 	BaseInterface
 	ProxyInterface
 	RoleInterface
 	AttributeToRolesInterface
 }
 
-func NewStorage(ctx context.Context, storageType, defaultScope string, logger logger.Logger, cfg *cfg.Config, encryptor aescipher.Cryptor) (StorageInterface, error) {
+// NewStorage creates a new storage instance.
+//
+//nolint:gocritic // we need to keep logger as a parameter for the function
+func NewStorage(_ context.Context, storageType, defaultScope string, logger logger.Logger, cfg *cfg.Config, encryptor aescipher.Cryptor) (Interface, error) {
 	switch storageType {
 	case "memory":
 		return NewMemoryStorage(defaultScope), nil

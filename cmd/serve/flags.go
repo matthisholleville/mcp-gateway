@@ -6,8 +6,9 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// bindServeFlagsFunc binds the serve flags to the command.
 func bindServeFlagsFunc(flags *pflag.FlagSet) func(*cobra.Command, []string) {
-	return func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, _ []string) {
 		util.MustBindPFlag("http-addr", flags.Lookup("http-addr"))
 		util.MustBindEnv("http-addr", "MCP_GATEWAY_HTTP_ADDR")
 
@@ -89,6 +90,5 @@ func bindServeFlagsFunc(flags *pflag.FlagSet) func(*cobra.Command, []string) {
 
 		util.MustBindPFlag("http.adminApiKey", flags.Lookup("http-admin-api-key"))
 		util.MustBindEnv("http.adminApiKey", "MCP_GATEWAY_HTTP_ADMIN_API_KEY")
-
 	}
 }

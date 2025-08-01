@@ -1,3 +1,6 @@
+// Package util provides cmd utility functions for the MCP Gateway.
+//
+//nolint:revive // we need to keep the functions as is for the cmd package
 package util
 
 import (
@@ -13,6 +16,7 @@ func MustBindPFlag(key string, flag *pflag.Flag) {
 	}
 }
 
+// MustBindEnv binds an environment variable to a viper key.
 func MustBindEnv(input ...string) {
 	if err := viper.BindEnv(input...); err != nil {
 		panic("failed to bind env key: " + err.Error())

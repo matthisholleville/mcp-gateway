@@ -9,18 +9,18 @@ import (
 
 func (s *Server) ConfigureRoutes(c *echo.Group) {
 	admin := c.Group("/admin")
-	admin.GET("/proxies", s.GetProxies)
-	admin.GET("/proxies/:name", s.GetProxy)
-	admin.PUT("/proxies/:name", s.UpsertProxy)
-	admin.DELETE("/proxies/:name", s.DeleteProxy)
+	admin.GET("/proxies", s.getProxies)
+	admin.GET("/proxies/:name", s.getProxy)
+	admin.PUT("/proxies/:name", s.upsertProxy)
+	admin.DELETE("/proxies/:name", s.deleteProxy)
 
-	admin.GET("/roles", s.GetRoles)
-	admin.PUT("/roles", s.UpsertRole)
-	admin.DELETE("/roles/:role", s.DeleteRole)
+	admin.GET("/roles", s.getRoles)
+	admin.PUT("/roles", s.upsertRole)
+	admin.DELETE("/roles/:role", s.deleteRole)
 
-	admin.GET("/attribute-to-roles", s.GetAttributeToRoles)
-	admin.PUT("/attribute-to-roles", s.UpsertAttributeToRole)
-	admin.DELETE("/attribute-to-roles/:attributeKey/:attributeValue", s.DeleteAttributeToRole)
+	admin.GET("/attribute-to-roles", s.getAttributeToRoles)
+	admin.PUT("/attribute-to-roles", s.upsertAttributeToRole)
+	admin.DELETE("/attribute-to-roles/:attributeKey/:attributeValue", s.deleteAttributeToRole)
 }
 
 // @Summary		Get all proxies
@@ -32,7 +32,7 @@ func (s *Server) ConfigureRoutes(c *echo.Group) {
 // @Success		200	{array}	storage.ProxyConfig
 // @Failure		500	{object}	map[string]string
 // @Router			/v1/admin/proxies [get]
-func (s *Server) GetProxies(c echo.Context) error {
+func (s *Server) getProxies(c echo.Context) error {
 	proxies, err := s.Storage.ListProxies(c.Request().Context(), false)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -53,7 +53,7 @@ func (s *Server) GetProxies(c echo.Context) error {
 // @Failure		500	{object}	map[string]string
 // @Security		Authentication
 // @Router			/v1/admin/proxies/{name} [get]
-func (s *Server) GetProxy(c echo.Context) error {
+func (s *Server) getProxy(c echo.Context) error {
 	name := c.Param("name")
 	proxy, err := s.Storage.GetProxy(c.Request().Context(), name, false)
 	if err != nil {
@@ -73,14 +73,14 @@ func (s *Server) GetProxy(c echo.Context) error {
 // @Failure		500	{object}	map[string]string
 // @Security		Authentication
 // @Router			/v1/admin/proxies/{name} [put]
-func (s *Server) UpsertProxy(c echo.Context) error {
+func (s *Server) upsertProxy(c echo.Context) error {
 	proxy := storage.ProxyConfig{}
 	var err error
 	if err := c.Bind(&proxy); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	err = s.Storage.SetProxy(c.Request().Context(), proxy, true)
+	err = s.Storage.SetProxy(c.Request().Context(), &proxy, true)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -97,9 +97,9 @@ func (s *Server) UpsertProxy(c echo.Context) error {
 // @Failure		500	{object}	map[string]string
 // @Security		Authentication
 // @Router			/v1/admin/proxies/{name} [delete]
-func (s *Server) DeleteProxy(c echo.Context) error {
+func (s *Server) deleteProxy(c echo.Context) error {
 	name := c.Param("name")
-	err := s.Storage.DeleteProxy(c.Request().Context(), storage.ProxyConfig{Name: name})
+	err := s.Storage.DeleteProxy(c.Request().Context(), name)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -115,7 +115,7 @@ func (s *Server) DeleteProxy(c echo.Context) error {
 // @Success		200	{array}	storage.RoleConfig
 // @Failure		500	{object}	map[string]string
 // @Router			/v1/admin/roles [get]
-func (s *Server) GetRoles(c echo.Context) error {
+func (s *Server) getRoles(c echo.Context) error {
 	roles, err := s.Storage.ListRoles(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -134,7 +134,7 @@ func (s *Server) GetRoles(c echo.Context) error {
 // @Failure		500	{object}	map[string]string
 // @Security		Authentication
 // @Router			/v1/admin/roles [put]
-func (s *Server) UpsertRole(c echo.Context) error {
+func (s *Server) upsertRole(c echo.Context) error {
 	role := storage.RoleConfig{}
 	if err := c.Bind(&role); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -157,7 +157,7 @@ func (s *Server) UpsertRole(c echo.Context) error {
 // @Failure		500	{object}	map[string]string
 // @Security		Authentication
 // @Router			/v1/admin/roles/{role} [delete]
-func (s *Server) DeleteRole(c echo.Context) error {
+func (s *Server) deleteRole(c echo.Context) error {
 	role := c.Param("role")
 	if role == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "role is required"})
@@ -178,7 +178,7 @@ func (s *Server) DeleteRole(c echo.Context) error {
 // @Success		200	{array}	storage.AttributeToRolesConfig
 // @Failure		500	{object}	map[string]string
 // @Router			/v1/admin/attribute-to-roles [get]
-func (s *Server) GetAttributeToRoles(c echo.Context) error {
+func (s *Server) getAttributeToRoles(c echo.Context) error {
 	attributeToRoles, err := s.Storage.ListAttributeToRoles(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -197,7 +197,7 @@ func (s *Server) GetAttributeToRoles(c echo.Context) error {
 // @Failure		500	{object}	map[string]string
 // @Security		Authentication
 // @Router			/v1/admin/attribute-to-roles [put]
-func (s *Server) UpsertAttributeToRole(c echo.Context) error {
+func (s *Server) upsertAttributeToRole(c echo.Context) error {
 	attributeToRole := storage.AttributeToRolesConfig{}
 	if err := c.Bind(&attributeToRole); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -222,7 +222,7 @@ func (s *Server) UpsertAttributeToRole(c echo.Context) error {
 // @Failure		500	{object}	map[string]string
 // @Security		Authentication
 // @Router			/v1/admin/attribute-to-roles/{attributeKey}/{attributeValue} [delete]
-func (s *Server) DeleteAttributeToRole(c echo.Context) error {
+func (s *Server) deleteAttributeToRole(c echo.Context) error {
 	attributeKey := c.Param("attributeKey")
 	attributeValue := c.Param("attributeValue")
 	if attributeKey == "" || attributeValue == "" {

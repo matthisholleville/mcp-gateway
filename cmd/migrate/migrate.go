@@ -1,3 +1,4 @@
+// Package migrate provides a command to run the MCP Gateway migrations.
 package migrate
 
 import (
@@ -21,8 +22,12 @@ const (
 	timeoutFlag          = "timeout"
 	dropFlag             = "drop"
 	dirFlag              = "dir"
+
+	defaultTimeout = 30 * time.Second
+	defaultVersion = 0
 )
 
+// NewMigrateCommand creates a new migrate command.
 func NewMigrateCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "migrate",
@@ -46,9 +51,9 @@ func NewMigrateCommand() *cobra.Command {
 
 	flags.String(logTimestampFlag, defaultConfig.Log.TimestampFormat, "The format to use for logging timestamps")
 
-	flags.Int(targetVersionFlag, 0, "The target version to migrate to (default 0)")
+	flags.Int(targetVersionFlag, defaultVersion, "The target version to migrate to (default 0)")
 
-	flags.Duration(timeoutFlag, 30*time.Second, "The timeout to use for the migration")
+	flags.Duration(timeoutFlag, defaultTimeout, "The timeout to use for the migration")
 
 	flags.Bool(dropFlag, false, "Drop all migrations")
 
@@ -72,7 +77,7 @@ func runMigration(_ *cobra.Command, _ []string) error {
 
 	log := logger.MustNewLogger(logFormat, logLevel, logTimestamp)
 
-	cfg := migrate.MigrationConfig{
+	config := migrate.MigrationConfig{
 		Engine:  engine,
 		URI:     uri,
 		Version: targetVersion,
@@ -82,5 +87,5 @@ func runMigration(_ *cobra.Command, _ []string) error {
 		Drop:    drop,
 	}
 
-	return migrate.RunMigrations(cfg)
+	return migrate.RunMigrations(&config)
 }

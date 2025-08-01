@@ -1,4 +1,4 @@
-package testFixtures
+package testfixtures
 
 import (
 	"context"
@@ -17,22 +17,25 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/jackc/pgx/v5/stdlib" // PostgreSQL driver.
-	_ "github.com/lib/pq"
+	_ "github.com/golang-migrate/migrate/v4/source/file" // need to import the file source
+	_ "github.com/jackc/pgx/v5/stdlib"                   // need to import the PostgreSQL driver.
+	_ "github.com/lib/pq"                                // need to import the PostgreSQL driver.
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	postgresImage = "postgres:17"
+	postgresImage  = "postgres:17"
+	maxElapsedTime = 30 * time.Second
 )
 
+// PostgresTestContainerOptions are the options for the PostgresTestContainer.
 type PostgresTestContainerOptions struct {
 	MigrationsDir string
 }
 
-type postgresTestContainer struct {
+// PostgresTestContainer is a test container for Postgres.
+type PostgresTestContainer struct {
 	addr     string
 	version  int64
 	username string
@@ -42,27 +45,27 @@ type postgresTestContainer struct {
 
 // NewPostgresTestContainer returns an implementation of the DatastoreTestContainer interface
 // for Postgres.
-func NewPostgresTestContainer(opts *PostgresTestContainerOptions) *postgresTestContainer {
-	return &postgresTestContainer{
+func NewPostgresTestContainer(opts *PostgresTestContainerOptions) *PostgresTestContainer {
+	return &PostgresTestContainer{
 		opts: opts,
 	}
 }
 
-func (p *postgresTestContainer) GetDatabaseSchemaVersion() int64 {
+func (p *PostgresTestContainer) GetDatabaseSchemaVersion() int64 {
 	return p.version
 }
 
 // RunPostgresTestContainer runs a Postgres container, connects to it, and returns a
 // bootstrapped implementation of the DatastoreTestContainer interface wired up for the
 // Postgres datastore engine.
-func (p *postgresTestContainer) RunPostgresTestContainer(t testing.TB) *postgresTestContainer {
+func (p *PostgresTestContainer) RunPostgresTestContainer(t testing.TB) *PostgresTestContainer {
 	dockerClient, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		dockerClient.Close()
+		dockerClient.Close() //nolint:errcheck // no need to check the error here
 	})
 
 	allImages, err := dockerClient.ImageList(context.Background(), image.ListOptions{
@@ -73,8 +76,9 @@ func (p *postgresTestContainer) RunPostgresTestContainer(t testing.TB) *postgres
 	foundPostgresImage := false
 
 AllImages:
-	for _, image := range allImages {
-		for _, tag := range image.RepoTags {
+	for i := range allImages {
+		dockerImage := allImages[i]
+		for _, tag := range dockerImage.RepoTags {
 			if strings.Contains(tag, postgresImage) {
 				foundPostgresImage = true
 				break AllImages
@@ -132,23 +136,28 @@ AllImages:
 		require.Fail(t, "failed to get host port mapping from postgres container")
 	}
 
-	pgTestContainer := &postgresTestContainer{
+	pgTestContainer := &PostgresTestContainer{
 		addr:     "localhost:" + m[0].HostPort,
 		username: "postgres",
 		password: "secret",
 	}
 
-	uri := fmt.Sprintf("postgres://%s:%s@%s/defaultdb?sslmode=disable", pgTestContainer.username, pgTestContainer.password, pgTestContainer.addr)
+	uri := fmt.Sprintf(
+		"postgres://%s:%s@%s/defaultdb?sslmode=disable",
+		pgTestContainer.username,
+		pgTestContainer.password,
+		pgTestContainer.addr,
+	)
 
 	db, err := sql.Open("postgres", uri)
 	require.NoError(t, err)
 
 	// Wait for the database to be ready before creating the driver
 	backoffPolicy := backoff.NewExponentialBackOff()
-	backoffPolicy.MaxElapsedTime = 30 * time.Second
+	backoffPolicy.MaxElapsedTime = maxElapsedTime
 	err = backoff.Retry(
 		func() error {
-			return db.Ping()
+			return db.PingContext(context.Background())
 		},
 		backoffPolicy,
 	)
@@ -160,7 +169,7 @@ AllImages:
 }
 
 // GetConnectionURI returns the postgres connection uri for the running postgres test container.
-func (p *postgresTestContainer) GetConnectionURI(includeCredentials bool) string {
+func (p *PostgresTestContainer) GetConnectionURI(includeCredentials bool) string {
 	creds := ""
 	if includeCredentials {
 		creds = fmt.Sprintf("%s:%s@", p.username, p.password)
@@ -174,30 +183,29 @@ func (p *postgresTestContainer) GetConnectionURI(includeCredentials bool) string
 	)
 }
 
-func (p *postgresTestContainer) GetUsername() string {
+func (p *PostgresTestContainer) GetUsername() string {
 	return p.username
 }
 
-func (p *postgresTestContainer) GetPassword() string {
+func (p *PostgresTestContainer) GetPassword() string {
 	return p.password
 }
 
-func (p *postgresTestContainer) executeMigrationsIfNeeded(t testing.TB, db *sql.DB) {
+func (p *PostgresTestContainer) executeMigrationsIfNeeded(t testing.TB, db *sql.DB) {
 	if p.opts.MigrationsDir != "" {
 		t.Logf("executing migrations from %s", p.opts.MigrationsDir)
 		driver, err := postgres.WithInstance(db, &postgres.Config{})
 		require.NoError(t, err)
-		migrate, err := migrate.NewWithDatabaseInstance(
+		migrateInstance, err := migrate.NewWithDatabaseInstance(
 			fmt.Sprintf("file://%s", p.opts.MigrationsDir),
 			"postgres", driver)
 		require.NoError(t, err)
-		err = migrate.Up()
+		err = migrateInstance.Up()
 		require.NoError(t, err)
 
-		version, _, err := migrate.Version()
+		version, _, err := migrateInstance.Version()
 		require.NoError(t, err)
-		p.version = int64(version)
+		p.version = int64(version) //nolint:gosec // G115: migration versions are always small integers
 		t.Logf("migrations executed successfully, version: %d", p.version)
 	}
-
 }

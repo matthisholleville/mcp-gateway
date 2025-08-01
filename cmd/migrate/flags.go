@@ -6,8 +6,9 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// bindRunFlagsFunc binds the run flags to the command.
 func bindRunFlagsFunc(flags *pflag.FlagSet) func(*cobra.Command, []string) {
-	return func(cmd *cobra.Command, args []string) {
+	return func(_ *cobra.Command, _ []string) {
 		util.MustBindPFlag(backendEngineFlag, flags.Lookup(backendEngineFlag))
 		util.MustBindEnv(backendEngineFlag, "MCP_GATEWAY_BACKEND_ENGINE")
 
@@ -37,6 +38,5 @@ func bindRunFlagsFunc(flags *pflag.FlagSet) func(*cobra.Command, []string) {
 
 		util.MustBindPFlag(dirFlag, flags.Lookup(dirFlag))
 		util.MustBindEnv(dirFlag, "MCP_GATEWAY_MIGRATION_DIR")
-
 	}
 }

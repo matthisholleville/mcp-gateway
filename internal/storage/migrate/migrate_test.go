@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	testFixtures "github.com/matthisholleville/mcp-gateway/internal/storage/testsFixtures"
+	testsFixtures "github.com/matthisholleville/mcp-gateway/internal/storage/testsfixtures"
 	"github.com/matthisholleville/mcp-gateway/pkg/logger"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,8 +15,8 @@ func setupFixtures(t *testing.T, engine string) (string, logger.Logger, error) {
 	logger := logger.MustNewLogger("json", "debug", "")
 	switch engine {
 	case "postgres":
-		postgresOpts := &testFixtures.PostgresTestContainerOptions{}
-		db := testFixtures.NewPostgresTestContainer(postgresOpts).RunPostgresTestContainer(t)
+		postgresOpts := &testsFixtures.PostgresTestContainerOptions{}
+		db := testsFixtures.NewPostgresTestContainer(postgresOpts).RunPostgresTestContainer(t)
 		return db.GetConnectionURI(true), logger, nil
 	case "memory":
 		return "", logger, nil
@@ -52,7 +52,7 @@ func TestMigrateUpDownDrop(t *testing.T) {
 			MigrationDir: "../../../assets/migrations/postgres",
 		}
 
-		err = RunMigrations(*cfg)
+		err = RunMigrations(cfg)
 		assert.NoError(t, err)
 
 		if engine.Engine == "memory" {
@@ -69,7 +69,7 @@ func TestMigrateUpDownDrop(t *testing.T) {
 
 		// drop
 		cfg.Drop = true
-		err = RunMigrations(*cfg)
+		err = RunMigrations(cfg)
 		assert.NoError(t, err)
 
 		db, err = sql.Open(engine.Engine, uri)

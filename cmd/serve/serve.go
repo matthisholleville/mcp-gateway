@@ -1,3 +1,4 @@
+// Package serve provides a command to run the MCP Gateway server.
 package serve
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// NewRunCommand creates a new run command.
 func NewRunCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "serve",
@@ -32,7 +34,7 @@ func NewRunCommand() *cobra.Command {
 
 	flags.Duration("proxy-cache-ttl", defaultConfig.Proxy.CacheTTL, "The TTL for the proxy cache")
 
-	flags.Duration("proxy-heartbeat-interval", defaultConfig.Proxy.Heartbeat.IntervalSeconds, "The interval for the proxy heartbeat")
+	flags.Duration("proxy-heartbeat-interval", defaultConfig.Proxy.Heartbeat.Interval, "The interval for the proxy heartbeat")
 
 	flags.Bool("oauth-enabled", defaultConfig.OAuth.Enabled, "Whether to enable OAuth")
 
@@ -79,6 +81,7 @@ func NewRunCommand() *cobra.Command {
 	return cmd
 }
 
+// ReadConfig reads the config from the file.
 func ReadConfig() (*cfg.Config, error) {
 	config := cfg.DefaultConfig()
 
@@ -106,18 +109,13 @@ func run(_ *cobra.Command, _ []string) {
 	if err := config.Verify(); err != nil {
 		panic(err)
 	}
-	logger := logger.MustNewLogger(config.Log.Format, config.Log.Level, config.Log.TimestampFormat)
-	server, err := server.NewServer(logger, config)
+	log := logger.MustNewLogger(config.Log.Format, config.Log.Level, config.Log.TimestampFormat)
+	serverClient, err := server.NewServer(log, config)
 	if err != nil {
 		panic(err)
 	}
-	err = server.ListenAndServe()
+	err = serverClient.ListenAndServe()
 	if err != nil {
 		panic(err)
 	}
-
-	// serverCtx := &server.Server{Logger: logger}
-	// if err := serverCtx.Run(context.Background(), config); err != nil {
-	// 	panic(err)
-	// }
 }

@@ -23,7 +23,8 @@ func NewMemoryStorage(defaultScope string) *MemoryStorage {
 	}
 }
 
-func (s *MemoryStorage) GetProxy(ctx context.Context, proxy string, decrypt bool) (ProxyConfig, error) {
+// GetProxy gets a proxy from the memory storage.
+func (s *MemoryStorage) GetProxy(_ context.Context, proxy string, _ bool) (ProxyConfig, error) {
 	proxyConfig, ok := s.proxies[proxy]
 	if !ok {
 		return ProxyConfig{}, fmt.Errorf("proxy not found")
@@ -31,7 +32,8 @@ func (s *MemoryStorage) GetProxy(ctx context.Context, proxy string, decrypt bool
 	return proxyConfig, nil
 }
 
-func (s *MemoryStorage) SetProxy(ctx context.Context, proxy ProxyConfig, encrypt bool) error {
+// SetProxy sets a proxy in the memory storage.
+func (s *MemoryStorage) SetProxy(_ context.Context, proxy *ProxyConfig, _ bool) error {
 	if !proxy.Type.IsValid() {
 		return fmt.Errorf("invalid proxy type: %s", proxy.Type)
 	}
@@ -39,16 +41,18 @@ func (s *MemoryStorage) SetProxy(ctx context.Context, proxy ProxyConfig, encrypt
 		return fmt.Errorf("invalid proxy auth type: %s", proxy.AuthType)
 	}
 
-	s.proxies[proxy.Name] = proxy
+	s.proxies[proxy.Name] = *proxy
 	return nil
 }
 
-func (s *MemoryStorage) DeleteProxy(ctx context.Context, proxy ProxyConfig) error {
-	delete(s.proxies, proxy.Name)
+// DeleteProxy deletes a proxy from the memory storage.
+func (s *MemoryStorage) DeleteProxy(_ context.Context, proxy string) error {
+	delete(s.proxies, proxy)
 	return nil
 }
 
-func (s *MemoryStorage) ListProxies(ctx context.Context, decrypt bool) ([]ProxyConfig, error) {
+// ListProxies lists all proxies from the memory storage.
+func (s *MemoryStorage) ListProxies(_ context.Context, _ bool) ([]ProxyConfig, error) {
 	proxies := make([]ProxyConfig, 0, len(s.proxies))
 	for _, proxy := range s.proxies {
 		proxies = append(proxies, proxy)
@@ -56,7 +60,8 @@ func (s *MemoryStorage) ListProxies(ctx context.Context, decrypt bool) ([]ProxyC
 	return proxies, nil
 }
 
-func (s *MemoryStorage) SetRole(ctx context.Context, role RoleConfig) error {
+// SetRole sets a role in the memory storage.
+func (s *MemoryStorage) SetRole(_ context.Context, role RoleConfig) error {
 	for _, permission := range role.Permissions {
 		if !permission.ObjectType.IsValid() {
 			return fmt.Errorf("invalid object type: %s", permission.ObjectType)
@@ -85,7 +90,8 @@ func (s *MemoryStorage) SetRole(ctx context.Context, role RoleConfig) error {
 	return nil
 }
 
-func (s *MemoryStorage) GetRole(ctx context.Context, role string) (RoleConfig, error) {
+// GetRole gets a role from the memory storage.
+func (s *MemoryStorage) GetRole(_ context.Context, role string) (RoleConfig, error) {
 	roleConfig, ok := s.roles[role]
 	if !ok {
 		return RoleConfig{}, fmt.Errorf("role not found")
@@ -93,12 +99,14 @@ func (s *MemoryStorage) GetRole(ctx context.Context, role string) (RoleConfig, e
 	return roleConfig, nil
 }
 
-func (s *MemoryStorage) DeleteRole(ctx context.Context, role string) error {
+// DeleteRole deletes a role from the memory storage.
+func (s *MemoryStorage) DeleteRole(_ context.Context, role string) error {
 	delete(s.roles, role)
 	return nil
 }
 
-func (s *MemoryStorage) ListRoles(ctx context.Context) ([]RoleConfig, error) {
+// ListRoles lists all roles from the memory storage.
+func (s *MemoryStorage) ListRoles(_ context.Context) ([]RoleConfig, error) {
 	roles := make([]RoleConfig, 0, len(s.roles))
 	for _, role := range s.roles {
 		roles = append(roles, role)
@@ -106,7 +114,8 @@ func (s *MemoryStorage) ListRoles(ctx context.Context) ([]RoleConfig, error) {
 	return roles, nil
 }
 
-func (s *MemoryStorage) SetAttributeToRoles(ctx context.Context, attributeToRoles AttributeToRolesConfig) error {
+// SetAttributeToRoles sets an attribute to roles in the memory storage.
+func (s *MemoryStorage) SetAttributeToRoles(_ context.Context, attributeToRoles AttributeToRolesConfig) error {
 	_, ok := s.attributeToRoles[fmt.Sprintf("%s:%s", attributeToRoles.AttributeKey, attributeToRoles.AttributeValue)]
 	if ok {
 		return fmt.Errorf("attribute to roles already exists")
@@ -122,12 +131,14 @@ func (s *MemoryStorage) SetAttributeToRoles(ctx context.Context, attributeToRole
 	return nil
 }
 
-func (s *MemoryStorage) DeleteAttributeToRoles(ctx context.Context, attributeKey, attributeValue string) error {
+// DeleteAttributeToRoles deletes an attribute to roles from the memory storage.
+func (s *MemoryStorage) DeleteAttributeToRoles(_ context.Context, attributeKey, attributeValue string) error {
 	delete(s.attributeToRoles, fmt.Sprintf("%s:%s", attributeKey, attributeValue))
 	return nil
 }
 
-func (s *MemoryStorage) ListAttributeToRoles(ctx context.Context) ([]AttributeToRolesConfig, error) {
+// ListAttributeToRoles lists all attribute to roles from the memory storage.
+func (s *MemoryStorage) ListAttributeToRoles(_ context.Context) ([]AttributeToRolesConfig, error) {
 	attributeToRoles := make([]AttributeToRolesConfig, 0, len(s.attributeToRoles))
 	for _, attributeToRole := range s.attributeToRoles {
 		attributeToRoles = append(attributeToRoles, attributeToRole)
@@ -135,7 +146,8 @@ func (s *MemoryStorage) ListAttributeToRoles(ctx context.Context) ([]AttributeTo
 	return attributeToRoles, nil
 }
 
-func (s *MemoryStorage) GetAttributeToRoles(ctx context.Context, attributeKey, attributeValue string) (AttributeToRolesConfig, error) {
+// GetAttributeToRoles gets an attribute to roles from the memory storage.
+func (s *MemoryStorage) GetAttributeToRoles(_ context.Context, attributeKey, attributeValue string) (AttributeToRolesConfig, error) {
 	fmt.Println("GetAttributeToRoles", attributeKey, attributeValue)
 	attributeToRoles, ok := s.attributeToRoles[fmt.Sprintf("%s:%s", attributeKey, attributeValue)]
 	if !ok {

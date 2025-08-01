@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/matthisholleville/mcp-gateway/internal/cfg"
-	testFixtures "github.com/matthisholleville/mcp-gateway/internal/storage/testsFixtures"
+	testsFixtures "github.com/matthisholleville/mcp-gateway/internal/storage/testsfixtures"
 	"github.com/matthisholleville/mcp-gateway/pkg/aescipher"
 	"github.com/matthisholleville/mcp-gateway/pkg/logger"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +15,7 @@ import (
 
 func testPostgresStorage(t *testing.T) (*PostgresStorage, error) {
 	logger := logger.MustNewLogger("json", "debug", "")
-	postgresOpts := &testFixtures.PostgresTestContainerOptions{
+	postgresOpts := &testsFixtures.PostgresTestContainerOptions{
 		MigrationsDir: "../../assets/migrations/postgres",
 	}
 
@@ -24,7 +24,7 @@ func testPostgresStorage(t *testing.T) (*PostgresStorage, error) {
 		return nil, err
 	}
 
-	db := testFixtures.NewPostgresTestContainer(postgresOpts).RunPostgresTestContainer(t)
+	db := testsFixtures.NewPostgresTestContainer(postgresOpts).RunPostgresTestContainer(t)
 	testConfig := &cfg.Config{
 		BackendConfig: &cfg.BackendConfig{
 			Engine: "postgres",
@@ -50,7 +50,7 @@ func TestProxyStorage(t *testing.T) {
 				{Key: "test", Value: "test"},
 			},
 		}
-		err := storage.SetProxy(context.Background(), proxy, true)
+		err := storage.SetProxy(context.Background(), &proxy, true)
 		assert.NoError(t, err)
 	})
 
@@ -79,7 +79,7 @@ func TestProxyStorage(t *testing.T) {
 			{Key: "test", Value: "test2"},
 			{Key: "test2", Value: "test3"},
 		}
-		err = storage.SetProxy(context.Background(), proxy, false)
+		err = storage.SetProxy(context.Background(), &proxy, false)
 		assert.NoError(t, err)
 	})
 
@@ -91,9 +91,7 @@ func TestProxyStorage(t *testing.T) {
 	})
 
 	t.Run("delete proxy", func(t *testing.T) {
-		proxy, err := storage.GetProxy(context.Background(), "test", false)
-		assert.NoError(t, err)
-		err = storage.DeleteProxy(context.Background(), proxy)
+		err := storage.DeleteProxy(context.Background(), "test")
 		assert.NoError(t, err)
 	})
 

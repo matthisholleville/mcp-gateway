@@ -1,3 +1,4 @@
+// Package cfg provides a configuration for the MCP Gateway.
 package cfg
 
 import (
@@ -37,8 +38,8 @@ type ProxyConfig struct {
 }
 
 type HeartbeatConfig struct {
-	Enabled         bool
-	IntervalSeconds time.Duration
+	Enabled  bool
+	Interval time.Duration
 }
 type CORSConfig struct {
 	Enabled          bool
@@ -117,8 +118,8 @@ func DefaultConfig() *Config {
 		Proxy: &ProxyConfig{
 			CacheTTL: 10 * time.Second,
 			Heartbeat: &HeartbeatConfig{
-				Enabled:         true,
-				IntervalSeconds: 10 * time.Second,
+				Enabled:  true,
+				Interval: 10 * time.Second,
 			},
 		},
 		OAuth: &OAuthConfig{
@@ -148,7 +149,7 @@ func (cfg *Config) Verify() error {
 		return fmt.Errorf("proxy cache TTL must be greater than 5 seconds")
 	}
 
-	if cfg.Proxy.Heartbeat.IntervalSeconds <= 5*time.Second {
+	if cfg.Proxy.Heartbeat.Interval <= 5*time.Second {
 		return fmt.Errorf("proxy heartbeat interval must be greater than 5 seconds")
 	}
 

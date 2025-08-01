@@ -12,12 +12,12 @@ func TestMemoryProxyStorage(t *testing.T) {
 	proxy := ProxyConfig{Name: "test", Type: ProxyTypeStreamableHTTP, AuthType: ProxyAuthTypeHeader, Headers: []ProxyHeader{
 		{Key: "test", Value: "test"},
 	}}
-	err := storage.SetProxy(context.Background(), proxy, false)
+	err := storage.SetProxy(context.Background(), &proxy, false)
 	assert.NoError(t, err)
 	proxy, err = storage.GetProxy(context.Background(), proxy.Name, false)
 	assert.NoError(t, err)
 	assert.Equal(t, proxy.Name, "test")
-	err = storage.DeleteProxy(context.Background(), proxy)
+	err = storage.DeleteProxy(context.Background(), proxy.Name)
 	assert.NoError(t, err)
 	proxy, err = storage.GetProxy(context.Background(), proxy.Name, false)
 	assert.Error(t, err)

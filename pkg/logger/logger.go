@@ -1,3 +1,6 @@
+// Package logger provides a logger for the MCP Gateway.
+//
+//nolint:revive // need to match the interface
 package logger
 
 import (
@@ -8,6 +11,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Logger is an interface that provides logging methods.
 type Logger interface {
 	// These are ops that call directly to the actual zap implementation
 	Debug(string, ...zap.Field)
@@ -51,63 +55,76 @@ func (l *ZapLogger) With(fields ...zap.Field) Logger {
 	return &ZapLogger{l.Logger.With(fields...)}
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) Debug(msg string, fields ...zap.Field) {
 	l.Logger.Debug(msg, fields...)
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) Info(msg string, fields ...zap.Field) {
 	l.Logger.Info(msg, fields...)
 }
 
+//nolint:revive //need to match the interface
 func (l *ZapLogger) Warn(msg string, fields ...zap.Field) {
 	l.Logger.Warn(msg, fields...)
 }
 
-func (l *ZapLogger) Error(msg string, fields ...zap.Field) {
+func (l *ZapLogger) Error(msg string, fields ...zap.Field) { //nolint:revive // need to match the interface
 	l.Logger.Error(msg, fields...)
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) Panic(msg string, fields ...zap.Field) {
 	l.Logger.Panic(msg, fields...)
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) Fatal(msg string, fields ...zap.Field) {
 	l.Logger.Fatal(msg, fields...)
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) Printf(format string, v ...interface{}) {
 	l.Logger.Info(fmt.Sprintf(format, v...))
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) Verbose() bool {
 	return true
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) DebugWithContext(ctx context.Context, msg string, fields ...zap.Field) {
 	l.Logger.Debug(msg, fields...)
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) InfoWithContext(ctx context.Context, msg string, fields ...zap.Field) {
 	l.Logger.Info(msg, fields...)
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) WarnWithContext(ctx context.Context, msg string, fields ...zap.Field) {
 	l.Logger.Warn(msg, fields...)
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) ErrorWithContext(ctx context.Context, msg string, fields ...zap.Field) {
 	l.Logger.Error(msg, fields...)
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) PanicWithContext(ctx context.Context, msg string, fields ...zap.Field) {
 	l.Logger.Panic(msg, fields...)
 }
 
+//nolint:revive // need to match the interface
 func (l *ZapLogger) FatalWithContext(ctx context.Context, msg string, fields ...zap.Field) {
 	l.Logger.Fatal(msg, fields...)
 }
 
-// OptionsLogger Implements options for logger.
+// OptionsLogger implements options for logger.
 type OptionsLogger struct {
 	format          string
 	level           string
@@ -115,20 +132,24 @@ type OptionsLogger struct {
 	outputPaths     []string
 }
 
+// OptionLogger is a function that sets an option for the logger.
 type OptionLogger func(ol *OptionsLogger)
 
+// WithFormat sets the log format for the logger.
 func WithFormat(format string) OptionLogger {
 	return func(ol *OptionsLogger) {
 		ol.format = format
 	}
 }
 
+// WithLevel sets the log level for the logger.
 func WithLevel(level string) OptionLogger {
 	return func(ol *OptionsLogger) {
 		ol.level = level
 	}
 }
 
+// WithTimestampFormat sets the timestamp format for the logger.
 func WithTimestampFormat(timestampFormat string) OptionLogger {
 	return func(ol *OptionsLogger) {
 		ol.timestampFormat = timestampFormat
@@ -153,6 +174,7 @@ func WithOutputPaths(paths ...string) OptionLogger {
 	}
 }
 
+// NewLogger creates a new logger with the given options.
 func NewLogger(options ...OptionLogger) (*ZapLogger, error) {
 	logOptions := &OptionsLogger{
 		level:           "info",
@@ -201,6 +223,8 @@ func NewLogger(options ...OptionLogger) (*ZapLogger, error) {
 	return &ZapLogger{log}, nil
 }
 
+// MustNewLogger creates a new logger with the given format, level, and timestamp format.
+// It panics if the logger creation fails.
 func MustNewLogger(logFormat, logLevel, logTimestampFormat string) *ZapLogger {
 	logger, err := NewLogger(
 		WithFormat(logFormat),

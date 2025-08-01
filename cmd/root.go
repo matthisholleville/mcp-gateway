@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// NewRootCommand creates a new root command.
 func NewRootCommand() *cobra.Command {
 	programName := "MCP Gateway"
 

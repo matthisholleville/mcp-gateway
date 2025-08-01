@@ -1,4 +1,4 @@
-// Package oauth provides the providers for the MCP Gateway
+// Package auth provides the providers for the MCP Gateway
 package auth
 
 import (
@@ -23,7 +23,9 @@ type Jwt struct {
 }
 
 // NewProvider creates a new provider
-func NewProvider(provider string, cfg *cfg.Config, logger logger.Logger, storage storage.StorageInterface) (Provider, error) {
+//
+//nolint:gocritic // we need to keep logger as a parameter for the function
+func NewProvider(provider string, cfg *cfg.Config, logger logger.Logger, storage storage.Interface) (Provider, error) {
 	switch provider {
 	case "okta":
 		return &OktaProvider{

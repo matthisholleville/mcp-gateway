@@ -1,11 +1,9 @@
+// Package server provides a server for the MCP Gateway.
 package server
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"sync/atomic"
@@ -49,18 +47,19 @@ type Server struct {
 	Config    *cfg.Config
 	Live      *int32
 	Ready     *int32
-	Storage   storage.StorageInterface
+	Storage   storage.Interface
 	Encryptor aescipher.Cryptor
+	Provider  auth.Provider
 }
 
 func NewServer(
-	logger logger.Logger,
+	log logger.Logger,
 	config *cfg.Config,
 
 ) (*Server, error) {
 	router := echo.New()
 	s := &Server{
-		Logger: logger,
+		Logger: log,
 		Config: config,
 		Router: router,
 	}
@@ -89,7 +88,8 @@ func (s *Server) GetRouter() *echo.Echo {
 	return s.Router
 }
 
-func (s *Server) GetHealthStatus() (*int32, *int32) {
+// GetHealthStatus gets the health status of the server.
+func (s *Server) GetHealthStatus() (live, ready *int32) {
 	return s.Live, s.Ready
 }
 
@@ -107,13 +107,13 @@ func (s *Server) registerHealthcheckRoutes() {
 	*s.Live = 1
 	*s.Ready = 1
 
-	s.Router.GET("/live", echo.HandlerFunc(func(c echo.Context) error {
+	s.Router.GET("/live", echo.HandlerFunc(func(_ echo.Context) error {
 		if atomic.LoadInt32(s.Live) == 1 {
 			return echo.NewHTTPError(http.StatusOK, "OK")
 		}
 		return echo.NewHTTPError(http.StatusServiceUnavailable, "KO")
 	}))
-	s.Router.GET("/ready", echo.HandlerFunc(func(c echo.Context) error {
+	s.Router.GET("/ready", echo.HandlerFunc(func(_ echo.Context) error {
 		if atomic.LoadInt32(s.Ready) == 1 {
 			return echo.NewHTTPError(http.StatusOK, "OK")
 		}
@@ -186,7 +186,7 @@ func (s *Server) configureMCP() {
 		server.WithStateLess(true),
 	)
 
-	s.addProxyTools(mcpServer)
+	go s.addProxyTools(mcpServer)
 
 	s.Router.GET("/mcp", echo.WrapHandler(serverConfig))
 	s.Router.HEAD("/mcp", echo.WrapHandler(serverConfig))
@@ -196,42 +196,41 @@ func (s *Server) configureMCP() {
 	s.Router.POST("/mcp", echo.WrapHandler(serverConfig))
 }
 
+// addProxyTools adds the proxy tools to the MCP server.
 func (s *Server) addProxyTools(mcpServer *server.MCPServer) {
-	go func() {
-		for {
-			time.Sleep(s.Config.Proxy.CacheTTL)
-			s.Logger.Info("Refreshing MCP proxies")
-			proxies, err := s.Storage.ListProxies(context.Background(), true)
+	for {
+		time.Sleep(s.Config.Proxy.CacheTTL)
+		s.Logger.Info("Refreshing MCP proxies")
+		proxies, err := s.Storage.ListProxies(context.Background(), true)
+		if err != nil {
+			s.Logger.Error("Failed to get MCP proxies", zap.Error(err))
+			continue
+		}
+		if len(proxies) == 0 {
+			s.Logger.Info("No MCP proxies found. Deleting all tools.")
+			mcpServer.DeleteTools()
+			continue
+		}
+		mcpProxy, err := proxy.NewProxy(&proxies, s.Logger)
+		if err != nil {
+			s.Logger.Error("Failed to create MCP proxy", zap.Error(err))
+			continue
+		}
+		for _, proxy := range *mcpProxy {
+			proxyTools, err := proxy.GetTools()
 			if err != nil {
-				s.Logger.Error("Failed to get MCP proxies", zap.Error(err))
+				s.Logger.Error("Failed to get MCP proxy tools", zap.Error(err))
 				continue
 			}
-			if len(proxies) == 0 {
-				s.Logger.Info("No MCP proxies found. Deleting all tools.")
-				mcpServer.DeleteTools()
-				continue
-			}
-			mcpProxy, err := proxy.NewProxy(&proxies, s.Logger)
-			if err != nil {
-				s.Logger.Error("Failed to create MCP proxy", zap.Error(err))
-				continue
-			}
-			for _, proxy := range *mcpProxy {
-				proxyTools, err := proxy.GetTools()
-				if err != nil {
-					s.Logger.Error("Failed to get MCP proxy tools", zap.Error(err))
-					continue
-				}
-				for i := range proxyTools {
-					tool := proxyTools[i]
-					toolName := proxy.GetName() + ":" + tool.Name
-					tool.Name = toolName
-					s.Logger.Debug("Adding tool", zap.String("tool", toolName))
-					mcpServer.AddTool(tool, proxy.CallTool)
-				}
+			for i := range proxyTools {
+				tool := proxyTools[i]
+				toolName := proxy.GetName() + ":" + tool.Name
+				tool.Name = toolName
+				s.Logger.Debug("Adding tool", zap.String("tool", toolName))
+				mcpServer.AddTool(tool, proxy.CallTool)
 			}
 		}
-	}()
+	}
 }
 
 // mcpHooks configures the MCP hooks
@@ -239,22 +238,27 @@ func (s *Server) mcpHooks() *server.Hooks {
 	hooks := &server.Hooks{}
 
 	hooks.AddBeforeCallTool(func(ctx context.Context, id any, message *mcp.CallToolRequest) {
-		logger, ok := ctx.Value("logger").(logger.Logger)
+		ctxLogger, ok := ctx.Value("logger").(logger.Logger)
 		if !ok {
 			s.Logger.Error("Logger not found in context")
 			return
 		}
-		logger.Info("Tool call started", zap.Any("request_id", id))
+		ctxLogger.Info("Tool call started", zap.Any("request_id", id))
 		method := message.Method
 		params := message.Params
 		args := message.GetArguments()
 		proxyName, toolName := s.parseToolName(params.Name)
 		metrics.ToolsCalledGauge.WithLabelValues(toolName, proxyName).Inc()
-		logger.Debug("Tool call started", zap.String("request_method", method), zap.String("tool_name", params.Name), zap.Any("request_arguments", args))
+		ctxLogger.Debug(
+			"Tool call started",
+			zap.String("request_method", method),
+			zap.String("tool_name", params.Name),
+			zap.Any("request_arguments", args),
+		)
 	})
 
 	hooks.AddAfterCallTool(func(ctx context.Context, id any, message *mcp.CallToolRequest, result *mcp.CallToolResult) {
-		logger, ok := ctx.Value("logger").(logger.Logger)
+		ctxLogger, ok := ctx.Value("logger").(logger.Logger)
 		if !ok {
 			s.Logger.Error("Logger not found in context")
 			return
@@ -268,14 +272,14 @@ func (s *Server) mcpHooks() *server.Hooks {
 		}
 		idFloat, ok := id.(float64)
 		if !ok {
-			logger.Error("Invalid request ID", zap.Any("request_id", id))
+			ctxLogger.Error("Invalid request ID", zap.Any("request_id", id))
 		}
 		proxyName, toolName := s.parseToolName(message.Params.Name)
 		if result.IsError {
-			logger.Error(response, zap.String("toolName", message.Params.Name), zap.Float64("request_id", idFloat))
+			ctxLogger.Error(response, zap.String("toolName", message.Params.Name), zap.Float64("request_id", idFloat))
 			metrics.ToolsCallErrorsGauge.WithLabelValues(toolName, proxyName).Inc()
 		} else {
-			logger.Info(
+			ctxLogger.Info(
 				"Tool call completed with success",
 				zap.String("toolName", message.Params.Name),
 				zap.Float64("request_id", idFloat),
@@ -285,22 +289,22 @@ func (s *Server) mcpHooks() *server.Hooks {
 	})
 
 	hooks.AddBeforeListTools(func(ctx context.Context, id any, _ *mcp.ListToolsRequest) {
-		logger, ok := ctx.Value("logger").(logger.Logger)
+		ctxLogger, ok := ctx.Value("logger").(logger.Logger)
 		if !ok {
 			s.Logger.Error("Logger not found in context")
 			return
 		}
-		logger.Info("Before List Tools Hook", zap.Any("request_id", id))
+		ctxLogger.Info("Before List Tools Hook", zap.Any("request_id", id))
 		metrics.ListToolsGauge.WithLabelValues("").Inc()
 	})
 
 	return hooks
 }
 
-func (s *Server) parseToolName(toolName string) (string, string) {
+func (s *Server) parseToolName(toolName string) (proxyName, toolNameParsed string) {
 	parts := strings.Split(toolName, ":")
-	if len(parts) != 2 {
-		return toolName, ""
+	if len(parts) != 2 { //nolint:mnd // always return 2 parts
+		return "", ""
 	}
 	return parts[0], parts[1]
 }
@@ -314,13 +318,14 @@ func (s *Server) addGlobalMCPContext(ctx context.Context, r *http.Request) conte
 		}
 	}
 	correlationID := uuid.New().String()
-	logger := s.Logger.With(zap.String("correlation_id", correlationID))
+	ctxLogger := s.Logger.With(zap.String("correlation_id", correlationID))
 	//nolint:staticcheck,revive // We need to use the key as a string
-	ctx = context.WithValue(ctx, "logger", logger)
+	ctx = context.WithValue(ctx, "logger", ctxLogger)
 
 	return ctx
 }
 
+// configureAuthMiddleware configures the auth middleware
 func (s *Server) configureAuthMiddleware() {
 	if !s.Config.AuthProvider.Enabled {
 		s.Logger.Warn("Auth is disabled. Skipping auth middleware.")
@@ -334,65 +339,14 @@ func (s *Server) configureAuthMiddleware() {
 	}
 	s.Logger.Info("Configuring auth middleware", zap.String("provider", s.Config.AuthProvider.Name))
 	err = provider.Init()
+	if err != nil {
+		s.Logger.Error("Failed to initialize provider", zap.Error(err))
+		panic(err)
+	}
 
-	s.Router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			isMCPPath := c.Path() == "/mcp" && c.Request().Method == "POST"
-			if !isMCPPath {
-				return next(c)
-			}
+	s.Provider = provider
 
-			token := c.Request().Header.Get("Authorization")
-			if token == "" {
-				return s.unauth(c, "missing_token", "Missing token")
-			}
-			token = strings.TrimPrefix(token, "Bearer ")
-
-			jwtToken, err := provider.VerifyToken(token)
-			if err != nil {
-				return s.unauth(c, "invalid_token", "Invalid token")
-			}
-
-			const maxBodySize = 1 << 20 // 1 MiB
-
-			req := c.Request()
-			body := req.Body
-			req.Body = http.MaxBytesReader(c.Response(), body, maxBodySize)
-
-			var copyBuf bytes.Buffer
-			tee := io.TeeReader(req.Body, &copyBuf)
-
-			dec := json.NewDecoder(tee)
-
-			message := &mcp.CallToolRequest{}
-			err = dec.Decode(message)
-			if err != nil {
-				s.Logger.Error("Failed to unmarshal request body", zap.Error(err))
-				return s.unauth(c, "invalid_request", "Invalid request")
-			}
-
-			req.Body = io.NopCloser(&copyBuf)
-
-			if message.Method != "tools/call" {
-				return next(c)
-			}
-
-			// tools/call:tools
-			objectType := strings.Split(message.Method, ":")[0]
-			toolSplit := strings.Split(message.Params.Name, ":")
-			objectName := toolSplit[1]
-			proxyName := toolSplit[0]
-
-			hasPermission := provider.VerifyPermissions(c.Request().Context(), objectType, objectName, proxyName, jwtToken.Claims)
-			if !hasPermission {
-				return s.unauth(c, "insufficient_scope", "Insufficient scope")
-			}
-
-			c.Set("claims", jwtToken.Claims)
-			return next(c)
-		}
-	})
-
+	s.Router.Use(s.authMiddleware)
 }
 
 func (s *Server) unauth(c echo.Context, code, msg string) error {
@@ -406,12 +360,12 @@ func (s *Server) configureStorage() {
 	if s.Config.BackendConfig.Engine == "memory" {
 		s.Logger.Warn("Using memory storage. This is not recommended for production.")
 	}
-	storage, err := storage.NewStorage(context.Background(), s.Config.BackendConfig.Engine, "", s.Logger, s.Config, s.Encryptor)
+	storageClient, err := storage.NewStorage(context.Background(), s.Config.BackendConfig.Engine, "", s.Logger, s.Config, s.Encryptor)
 	if err != nil {
 		s.Logger.Error("Failed to create storage", zap.Error(err))
 		panic(err)
 	}
-	s.Storage = storage
+	s.Storage = storageClient
 }
 
 func (s *Server) configureSwaggerRoutes() {
@@ -429,7 +383,6 @@ func (s *Server) configureEncryption() {
 }
 
 func (s *Server) configureV1Routes() {
-
 	v1 := s.Router.Group("/v1")
 	v1.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

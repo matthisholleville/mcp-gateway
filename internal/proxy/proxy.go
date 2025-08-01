@@ -39,6 +39,9 @@ type proxyInterface interface {
 
 var _ proxyInterface = &proxy{}
 
+// NewProxy creates a new proxy.
+//
+//nolint:gocritic // we need to keep logger as a parameter for the function
 func NewProxy(proxyCfg *[]storage.ProxyConfig, logger logger.Logger) (*[]proxyInterface, error) {
 	proxies := &[]proxyInterface{}
 
@@ -170,25 +173,27 @@ func (p *proxy) GetTools() ([]mcp.Tool, error) {
 	return toolsResult.Tools, nil
 }
 
-func (p *proxy) startHeartbeat(interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+// startHeartbeat starts a heartbeat for the proxy.
+// func (p *proxy) startHeartbeat(interval time.Duration) {
+// 	ticker := time.NewTicker(interval)
+// 	defer ticker.Stop()
 
-	for range ticker.C {
-		p.logger.Debug("heartbeat...", zap.String("interval", interval.String()), zap.String("proxy", p.name))
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		if err := p.ensureConnected(ctx); err != nil {
-			p.logger.Warn("heartbeat failed", zap.Error(err))
-		}
-		cancel()
-	}
-}
+// 	for range ticker.C {
+// 		p.logger.Debug("heartbeat...", zap.String("interval", interval.String()), zap.String("proxy", p.name))
+// 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+// 		if err := p.ensureConnected(ctx); err != nil {
+// 			p.logger.Warn("heartbeat failed", zap.Error(err))
+// 		}
+// 		cancel()
+// 	}
+// }
 
 func (p *proxy) GetName() string {
 	return p.name
 }
 
-func openStreamableHTTPProxy(proxyConfig *storage.ProxyConfig, logger logger.Logger) (*transport.StreamableHTTP, error) {
+func openStreamableHTTPProxy(proxyConfig *storage.ProxyConfig, log logger.Logger) (*transport.StreamableHTTP, error) {
+	log.Debug("opening streamable HTTP proxy", zap.Any("proxyConfig", proxyConfig))
 	ctx := context.Background()
 	endpoint := proxyConfig.URL
 
@@ -198,13 +203,9 @@ func openStreamableHTTPProxy(proxyConfig *storage.ProxyConfig, logger logger.Log
 	}
 
 	timeout := defaultTimeout
-	// if proxyConfig.Connection.Timeout != 0 {
-	// 	if t, err := time.ParseDuration(proxyConfig.Connection.Timeout.String()); err == nil {
-	// 		timeout = t
-	// 	} else {
-	// 		logger.Error("Failed to parse timeout", zap.Error(err))
-	// 	}
-	// }
+	if proxyConfig.Timeout != 0 {
+		timeout = proxyConfig.Timeout
+	}
 
 	httpTransport, err := transport.NewStreamableHTTP(
 		endpoint,
@@ -218,6 +219,8 @@ func openStreamableHTTPProxy(proxyConfig *storage.ProxyConfig, logger logger.Log
 	if err := httpTransport.Start(ctx); err != nil {
 		return nil, err
 	}
+
+	log.Debug("streamable HTTP proxy opened", zap.Any("proxyConfig", proxyConfig))
 
 	return httpTransport, nil
 }
