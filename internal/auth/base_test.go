@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/matthisholleville/mcp-gateway/internal/storage"
@@ -33,7 +32,6 @@ func initLogger() logger.Logger {
 }
 
 func TestBaseProvider_ClaimToRoles(t *testing.T) {
-	fmt.Println("TestBaseProvider_ClaimToRoles")
 	for _, test := range []struct {
 		name             string
 		attributeToRoles []storage.AttributeToRolesConfig
@@ -93,7 +91,6 @@ func TestBaseProvider_ClaimToRoles(t *testing.T) {
 }
 
 func TestBaseProvider_VerifyPermissions(t *testing.T) {
-	fmt.Println("TestBaseProvider_VerifyPermissions")
 	for _, test := range []struct {
 		name             string
 		attributeToRoles []storage.AttributeToRolesConfig

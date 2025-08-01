@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -39,7 +38,6 @@ func TestProxyStorage(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("insert proxy with unencrypted headers", func(t *testing.T) {
-		fmt.Println("insert proxy with headers")
 		proxy := ProxyConfig{
 			Name:     "test",
 			Type:     ProxyTypeStreamableHTTP,

@@ -11,7 +11,7 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-.PHONY: help run build clean test lint fmt vet deps install serve dev check mocks swagger envrc-sample check-envrc helm-docs create-migration
+.PHONY: help run build clean test lint fmt vet deps install serve serve-postgres dev check mocks swagger envrc-sample check-envrc helm-docs create-migration
 
 ## help: Show this help
 help:
@@ -21,11 +21,15 @@ help:
 		awk 'BEGIN {FS = "## "}; {printf "  $(GREEN)%-15s$(RESET) %s\n", $$2, $$3}' | \
 		sed 's/:/ /'
 
-## serve: Run the application in server mode with debug configuration
-serve:
+## serve-postgres: Run the application in server mode with debug configuration and postgres backend
+serve-postgres:
 	@echo "$(YELLOW)Starting server in debug mode...$(RESET)"
 	go run main.go serve --log-format=text --log-level=debug --http-admin-api-key=admin --backend-engine=postgres --backend-uri='postgresql://mcp-gateway:changeme@localhost:5439/mcp-gateway?sslmode=disable' --backend-encryption-key=0123456789abcdeffedcba9876543210cafebabefacefeeddeadbeef00112233
 
+## serve: Run the application in server mode with debug configuration and memory backend
+serve:
+	@echo "$(YELLOW)Starting server in debug mode...$(RESET)"
+	go run main.go serve --log-format=text --log-level=debug --http-admin-api-key=admin --backend-engine=memory
 
 ## dev: Alias for serve (for development)
 dev: serve

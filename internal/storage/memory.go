@@ -148,7 +148,6 @@ func (s *MemoryStorage) ListAttributeToRoles(_ context.Context) ([]AttributeToRo
 
 // GetAttributeToRoles gets an attribute to roles from the memory storage.
 func (s *MemoryStorage) GetAttributeToRoles(_ context.Context, attributeKey, attributeValue string) (AttributeToRolesConfig, error) {
-	fmt.Println("GetAttributeToRoles", attributeKey, attributeValue)
 	attributeToRoles, ok := s.attributeToRoles[fmt.Sprintf("%s:%s", attributeKey, attributeValue)]
 	if !ok {
 		return AttributeToRolesConfig{}, fmt.Errorf("attribute to roles not found")

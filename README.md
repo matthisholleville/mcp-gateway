@@ -15,7 +15,7 @@ A **flexible and extensible proxy gateway** for [MCP (Model Context Protocol)](h
 - **JWT Token Verification**: Secure token validation
 
 ### 📊 Enterprise Ready
-- **Multiple Storage Backends**: Memory (dev), PostgreSQL (coming soon)
+- **Multiple Storage Backends**: Memory (dev), PostgreSQL
 - **RESTful Admin API**: Dynamic configuration management
 - **Prometheus Metrics**: Built-in observability
 - **Structured Logging**: JSON and text output formats
@@ -65,6 +65,26 @@ docker pull ghcr.io/matthisholleville/mcp-gateway:latest
 # Run with environment variables
 docker run -p 8082:8082 \
   ghcr.io/matthisholleville/mcp-gateway:latest serve
+```
+
+### Using Docker Compose (with PostgreSQL)
+
+```bash
+# Start PostgreSQL
+docker-compose up -d postgres
+
+# Run migrations
+go run main.go migrate up \
+  --backend-engine=postgres \
+  --backend-uri='postgresql://mcp-gateway:changeme@localhost:5439/mcp-gateway?sslmode=disable'
+
+# Start server with PostgreSQL backend
+go run main.go serve \
+  --log-format=text \
+  --log-level=debug \
+  --backend-engine=postgres \
+  --backend-uri='postgresql://mcp-gateway:changeme@localhost:5439/mcp-gateway?sslmode=disable' \
+  --backend-encryption-key=0123456789abcdeffedcba9876543210cafebabefacefeeddeadbeef00112233
 ```
 
 ### Using Helm
@@ -151,7 +171,7 @@ go run main.go serve \
 - **Persistence**: None (data lost on restart)
 - **Configuration**: `--backend-engine=memory`
 
-### PostgreSQL Backend (Coming Soon)
+### PostgreSQL Backend
 - **Usage**: Production environments
 - **Persistence**: Full durability
 - **Configuration**: `--backend-engine=postgres --backend-uri=postgres://...`
@@ -262,7 +282,7 @@ The gateway searches for `config.yaml` in:
 --auth-provider-enabled   # Enable authentication
 --auth-provider-name      # okta
 --oauth-enabled           # Enable OAuth2
---backend-engine          # memory, postgres (coming soon)
+--backend-engine          # memory, postgres
 --http-addr               # Server address (default: :8082)
 --http-admin-api-key      # Admin API key for MCP Gateway configuration
 ```

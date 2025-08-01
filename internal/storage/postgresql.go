@@ -666,7 +666,6 @@ func (s *PostgresStorage) DeleteAttributeToRoles(ctx context.Context, attributeK
 
 // encryptIfNeeded encrypts a value if needed.
 func (s *PostgresStorage) encryptIfNeeded(value string) (string, error) {
-	fmt.Println("encryptIfNeeded", value, s.encryptor.IsEncryptedString(value))
 	if s.encryptor.IsEncryptedString(value) {
 		return value, nil
 	}

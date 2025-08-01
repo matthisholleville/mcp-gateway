@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/matthisholleville/mcp-gateway/internal/storage"
@@ -79,6 +80,8 @@ func (s *Server) upsertProxy(c echo.Context) error {
 	if err := c.Bind(&proxy); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
+
+	proxy.Timeout = proxy.Timeout * time.Second
 
 	err = s.Storage.SetProxy(c.Request().Context(), &proxy, true)
 	if err != nil {

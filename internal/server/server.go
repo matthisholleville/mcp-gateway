@@ -374,6 +374,10 @@ func (s *Server) configureSwaggerRoutes() {
 }
 
 func (s *Server) configureEncryption() {
+	if s.Config.BackendConfig.Engine == "memory" {
+		s.Logger.Warn("Using memory storage. Skipping encryption.")
+		return
+	}
 	encryptor, err := aescipher.New(s.Config.BackendConfig.EncryptionKey)
 	if err != nil {
 		s.Logger.Error("Failed to create encryptor mandatory for backend data encryption", zap.Error(err))

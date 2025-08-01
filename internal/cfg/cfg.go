@@ -153,7 +153,7 @@ func (cfg *Config) Verify() error {
 		return fmt.Errorf("proxy heartbeat interval must be greater than 5 seconds")
 	}
 
-	if cfg.BackendConfig.EncryptionKey == "" {
+	if cfg.BackendConfig.EncryptionKey == "" && cfg.BackendConfig.Engine != "memory" {
 		return fmt.Errorf("encryption key is required")
 	}
 
