@@ -296,6 +296,8 @@ The gateway searches for `config.yaml` in:
 ### Backend Flags
 ```bash
 --backend-uri                    # URI for the auth backend
+--backend-username               # The username to use for the auth backend. It will override the username in the URI if provided.
+--backend-password               # The password to use for the auth backend. It will override the password in the URI if provided.
 --backend-max-open-conns         # Maximum number of open database connections
 --backend-max-idle-conns         # Maximum number of idle connections in pool
 --backend-conn-max-idle-time     # Maximum time a connection may be idle

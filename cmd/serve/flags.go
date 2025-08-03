@@ -56,6 +56,12 @@ func bindServeFlagsFunc(flags *pflag.FlagSet) func(*cobra.Command, []string) {
 		util.MustBindPFlag("backendConfig.uri", flags.Lookup("backend-uri"))
 		util.MustBindEnv("backendConfig.uri", "MCP_GATEWAY_BACKEND_URI")
 
+		util.MustBindPFlag("backendConfig.username", flags.Lookup("backend-username"))
+		util.MustBindEnv("backendConfig.username", "MCP_GATEWAY_BACKEND_USERNAME")
+
+		util.MustBindPFlag("backendConfig.password", flags.Lookup("backend-password"))
+		util.MustBindEnv("backendConfig.password", "MCP_GATEWAY_BACKEND_PASSWORD")
+
 		util.MustBindPFlag("backendConfig.maxOpenConns", flags.Lookup("backend-max-open-conns"))
 		util.MustBindEnv("backendConfig.maxOpenConns", "MCP_GATEWAY_BACKEND_MAX_OPEN_CONNS")
 

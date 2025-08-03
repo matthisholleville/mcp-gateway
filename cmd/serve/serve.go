@@ -54,6 +54,10 @@ func NewRunCommand() *cobra.Command {
 
 	flags.String("backend-uri", defaultConfig.BackendConfig.URI, "The URI to use for the auth backend")
 
+	flags.String("backend-username", defaultConfig.BackendConfig.Username, "The username to use for the auth backend. It will override the username in the URI if provided.")
+
+	flags.String("backend-password", defaultConfig.BackendConfig.Password, "The password to use for the auth backend. It will override the password in the URI if provided.")
+
 	flags.Int("backend-max-open-conns", defaultConfig.BackendConfig.MaxOpenConns, "The maximum number of open connections to the database")
 
 	flags.Int("backend-max-idle-conns", defaultConfig.BackendConfig.MaxIdleConns, "The maximum number of connections to the datastore in the idle connection pool")

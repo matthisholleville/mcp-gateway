@@ -81,7 +81,7 @@ func (s *Server) upsertProxy(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	proxy.Timeout = proxy.Timeout * time.Second
+	proxy.Timeout *= time.Second
 
 	err = s.Storage.SetProxy(c.Request().Context(), &proxy, true)
 	if err != nil {

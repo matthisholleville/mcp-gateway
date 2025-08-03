@@ -81,6 +81,9 @@ type BackendConfig struct {
 	Engine string
 	URI    string `json:"-"` // private field, won't be logged
 
+	Username string
+	Password string `json:"-"` // private field, won't be logged
+
 	// MaxOpenConns is the maximum number of open connections to the database.
 	MaxOpenConns int
 

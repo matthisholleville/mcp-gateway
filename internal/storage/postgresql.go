@@ -32,7 +32,11 @@ func NewPostgresStorage(defaultScope string, logger logger.Logger, cfg *cfg.Conf
 	gormLogger := gormlogger.New(logger, gormlogger.Config{
 		LogLevel: gormlogger.Warn,
 	})
-	db, err := gorm.Open(postgres.Open(cfg.BackendConfig.URI), &gorm.Config{
+	uri, err := getURI(cfg)
+	if err != nil {
+		return nil, err
+	}
+	db, err := gorm.Open(postgres.Open(uri), &gorm.Config{
 		Logger: gormLogger,
 	})
 	if err != nil {
