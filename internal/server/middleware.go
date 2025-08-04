@@ -30,11 +30,8 @@ func (s *Server) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		isOAuthEnabled := s.Config.OAuth.Enabled
 		isToolCall := message.Method == "tools/call"
 		if !isOAuthEnabled && !isToolCall {
-			fmt.Println("ici 2")
 			return next(c)
 		}
-
-		fmt.Println("ici")
 
 		token := c.Request().Header.Get("Authorization")
 		if token == "" {

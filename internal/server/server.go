@@ -350,6 +350,9 @@ func (s *Server) configureAuthMiddleware() {
 }
 
 func (s *Server) unauth(c echo.Context, code, msg string) error {
+	if len(s.Config.OAuth.AuthorizationServers) == 0 {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("OAuth is enabled but no authorization servers are configured: %s", code))
+	}
 	rsMetaURL := s.Config.OAuth.AuthorizationServers[0] + "/.well-known/oauth-protected-resource"
 	c.Response().Header().Set("WWW-Authenticate",
 		fmt.Sprintf(`Bearer resource_metadata=%q, error=%q`, rsMetaURL, code))
