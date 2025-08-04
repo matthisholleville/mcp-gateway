@@ -9,6 +9,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/matthisholleville/mcp-gateway/internal/cfg"
+	"github.com/matthisholleville/mcp-gateway/internal/storage/utils"
 	"github.com/matthisholleville/mcp-gateway/pkg/aescipher"
 	"github.com/matthisholleville/mcp-gateway/pkg/logger"
 	"go.uber.org/zap"
@@ -32,7 +33,7 @@ func NewPostgresStorage(defaultScope string, logger logger.Logger, cfg *cfg.Conf
 	gormLogger := gormlogger.New(logger, gormlogger.Config{
 		LogLevel: gormlogger.Warn,
 	})
-	uri, err := getURI(cfg)
+	uri, err := utils.GetURI(cfg.BackendConfig.Username, cfg.BackendConfig.Password, cfg.BackendConfig.URI)
 	if err != nil {
 		return nil, err
 	}

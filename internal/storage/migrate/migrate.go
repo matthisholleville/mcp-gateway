@@ -10,6 +10,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file" // import file source
 	_ "github.com/lib/pq"                                // import postgres driver
+	"github.com/matthisholleville/mcp-gateway/internal/storage/utils"
 	"github.com/matthisholleville/mcp-gateway/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -18,6 +19,8 @@ import (
 type MigrationConfig struct {
 	Engine       string        // "memory", "postgres", ...
 	URI          string        // connection string for the target database
+	Username     string        // username for the target database
+	Password     string        // password for the target database
 	Logger       logger.Logger // structured logger implementation
 	Timeout      time.Duration // advisory lock timeout
 	Verbose      bool          // enable verbose output on migrate CLI
@@ -66,7 +69,12 @@ func newMigrator(cfg *MigrationConfig) (*migrate.Migrate, error) {
 			cfg.MigrationDir = "assets/migrations/postgres"
 		}
 
-		db, err := sql.Open("postgres", cfg.URI)
+		uri, err := utils.GetURI(cfg.Username, cfg.Password, cfg.URI)
+		if err != nil {
+			return nil, fmt.Errorf("get uri: %w", err)
+		}
+
+		db, err := sql.Open("postgres", uri)
 		if err != nil {
 			return nil, fmt.Errorf("open database: %w", err)
 		}

@@ -15,6 +15,12 @@ func bindRunFlagsFunc(flags *pflag.FlagSet) func(*cobra.Command, []string) {
 		util.MustBindPFlag(backendURIFlag, flags.Lookup(backendURIFlag))
 		util.MustBindEnv("backend-uri", "MCP_GATEWAY_BACKEND_URI")
 
+		util.MustBindPFlag(backendUsernameFlag, flags.Lookup(backendUsernameFlag))
+		util.MustBindEnv(backendUsernameFlag, "MCP_GATEWAY_BACKEND_USERNAME")
+
+		util.MustBindPFlag(backendPasswordFlag, flags.Lookup(backendPasswordFlag))
+		util.MustBindEnv(backendPasswordFlag, "MCP_GATEWAY_BACKEND_PASSWORD")
+
 		util.MustBindPFlag(verboseMigrationFlag, flags.Lookup(verboseMigrationFlag))
 		util.MustBindEnv(verboseMigrationFlag, "MCP_GATEWAY_VERBOSE")
 

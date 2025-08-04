@@ -14,6 +14,8 @@ import (
 const (
 	backendEngineFlag    = "backend-engine"
 	backendURIFlag       = "backend-uri"
+	backendUsernameFlag  = "backend-username"
+	backendPasswordFlag  = "backend-password"
 	logFormatFlag        = "log-format"
 	logLevelFlag         = "log-level"
 	logTimestampFlag     = "log-timestamp-format"
@@ -43,6 +45,10 @@ func NewMigrateCommand() *cobra.Command {
 
 	flags.String(backendURIFlag, defaultConfig.BackendConfig.URI, "(required) The URI to use for the auth backend")
 
+	flags.String(backendUsernameFlag, defaultConfig.BackendConfig.Username, "The username to use for the auth backend")
+
+	flags.String(backendPasswordFlag, defaultConfig.BackendConfig.Password, "The password to use for the auth backend")
+
 	flags.Bool(verboseMigrationFlag, false, "enable verbose migration logs (default false)")
 
 	flags.String(logFormatFlag, defaultConfig.Log.Format, "The format to use for logging")
@@ -67,6 +73,8 @@ func NewMigrateCommand() *cobra.Command {
 func runMigration(_ *cobra.Command, _ []string) error {
 	engine := viper.GetString(backendEngineFlag)
 	uri := viper.GetString(backendURIFlag)
+	username := viper.GetString(backendUsernameFlag)
+	password := viper.GetString(backendPasswordFlag)
 	verbose := viper.GetBool(verboseMigrationFlag)
 	logFormat := viper.GetString(logFormatFlag)
 	logLevel := viper.GetString(logLevelFlag)
@@ -78,13 +86,15 @@ func runMigration(_ *cobra.Command, _ []string) error {
 	log := logger.MustNewLogger(logFormat, logLevel, logTimestamp)
 
 	config := migrate.MigrationConfig{
-		Engine:  engine,
-		URI:     uri,
-		Version: targetVersion,
-		Timeout: timeout,
-		Logger:  log,
-		Verbose: verbose,
-		Drop:    drop,
+		Engine:   engine,
+		URI:      uri,
+		Username: username,
+		Password: password,
+		Version:  targetVersion,
+		Timeout:  timeout,
+		Logger:   log,
+		Verbose:  verbose,
+		Drop:     drop,
 	}
 
 	return migrate.RunMigrations(&config)
