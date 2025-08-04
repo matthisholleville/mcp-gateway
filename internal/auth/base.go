@@ -23,6 +23,11 @@ func (b *BaseProvider) VerifyPermissions(
 	objectType, proxy, objectName string,
 	claims map[string]interface{},
 ) bool {
+	b.logger.Debug("Verifying permissions",
+		zap.String("objectType", objectType),
+		zap.String("proxy", proxy),
+		zap.String("objectName", objectName),
+		zap.Any("claims", claims))
 	roles := b.attributeToRoles(ctx, claims)
 
 	// Resolve all roles in parallel ‑ stored in a thread‑safe slice.

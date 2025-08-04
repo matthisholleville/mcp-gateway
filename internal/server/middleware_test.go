@@ -314,7 +314,10 @@ func TestAuthMiddleware_OAuthDisabledButToolCall(t *testing.T) {
 
 	err := middleware(c)
 
-	// Should pass because OAuth is disabled
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, rec.Code)
+	// Shouldn't pass because insufficient permissions
+	httpErr, ok := err.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusUnauthorized, httpErr.Code)
+	assert.Equal(t, "Insufficient scope", httpErr.Message)
+
 }

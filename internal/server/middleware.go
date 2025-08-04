@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -16,7 +15,6 @@ import (
 // authMiddleware is the middleware that checks if the request is valid and if the user has the necessary permissions
 func (s *Server) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		fmt.Println(c.Path(), c.Request().Method)
 		isMCPPath := c.Path() == "/mcp" && c.Request().Method == "POST"
 		if !isMCPPath {
 			return next(c)
@@ -42,10 +40,6 @@ func (s *Server) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		jwtToken, err := s.Provider.VerifyToken(token)
 		if err != nil {
 			return s.unauth(c, "invalid_token", "Invalid token")
-		}
-
-		if !isOAuthEnabled {
-			return next(c)
 		}
 
 		// tools/call:tools
