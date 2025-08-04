@@ -29,6 +29,7 @@ WORKDIR /home/app
 
 COPY --from=builder /mcp-gateway/bin/mcp-gateway .
 COPY --from=builder /mcp-gateway/config/config.yaml ./config.yaml
+COPY --from=builder /mcp-gateway/assets/migrations/postgres/ ./assets/migrations/postgres/
 
 RUN chown -R app:app ./
 
