@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -12,12 +13,28 @@ import (
 	"go.uber.org/zap"
 )
 
+// authMiddleware is the middleware that checks if the request is valid and if the user has the necessary permissions
 func (s *Server) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		fmt.Println(c.Path(), c.Request().Method)
 		isMCPPath := c.Path() == "/mcp" && c.Request().Method == "POST"
 		if !isMCPPath {
 			return next(c)
 		}
+
+		message, err := s.parseRequestBody(c)
+		if err != nil {
+			return s.unauth(c, "invalid_request", "Invalid request")
+		}
+
+		isOAuthEnabled := s.Config.OAuth.Enabled
+		isToolCall := message.Method == "tools/call"
+		if !isOAuthEnabled && !isToolCall {
+			fmt.Println("ici 2")
+			return next(c)
+		}
+
+		fmt.Println("ici")
 
 		token := c.Request().Header.Get("Authorization")
 		if token == "" {
@@ -30,27 +47,7 @@ func (s *Server) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return s.unauth(c, "invalid_token", "Invalid token")
 		}
 
-		const maxBodySize = 1 << 20 // 1 MiB
-
-		req := c.Request()
-		body := req.Body
-		req.Body = http.MaxBytesReader(c.Response(), body, maxBodySize)
-
-		var copyBuf bytes.Buffer
-		tee := io.TeeReader(req.Body, &copyBuf)
-
-		dec := json.NewDecoder(tee)
-
-		message := &mcp.CallToolRequest{}
-		err = dec.Decode(message)
-		if err != nil {
-			s.Logger.Error("Failed to unmarshal request body", zap.Error(err))
-			return s.unauth(c, "invalid_request", "Invalid request")
-		}
-
-		req.Body = io.NopCloser(&copyBuf)
-
-		if message.Method != "tools/call" {
+		if !isOAuthEnabled {
 			return next(c)
 		}
 
@@ -68,4 +65,29 @@ func (s *Server) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		c.Set("claims", jwtToken.Claims)
 		return next(c)
 	}
+}
+
+// parseRequestBody parses the request body and returns a MCP request
+func (s *Server) parseRequestBody(c echo.Context) (*mcp.CallToolRequest, error) {
+	const maxBodySize = 1 << 20 // 1 MiB
+
+	req := c.Request()
+	body := req.Body
+	req.Body = http.MaxBytesReader(c.Response(), body, maxBodySize)
+
+	var copyBuf bytes.Buffer
+	tee := io.TeeReader(req.Body, &copyBuf)
+
+	dec := json.NewDecoder(tee)
+
+	message := &mcp.CallToolRequest{}
+	err := dec.Decode(message)
+	if err != nil {
+		s.Logger.Error("Failed to unmarshal request body", zap.Error(err))
+		return nil, err
+	}
+
+	req.Body = io.NopCloser(&copyBuf)
+
+	return message, nil
 }
