@@ -43,12 +43,16 @@ func (s *Server) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		// tools/call:tools
-		objectType := strings.Split(message.Method, ":")[0]
-		toolSplit := strings.Split(message.Params.Name, ":")
-		objectName := toolSplit[1]
-		proxyName := toolSplit[0]
+		s.Logger.Debug("Verifying permissions for tool call",
+			zap.String("method", message.Method),
+			zap.String("params", message.Params.Name),
+			zap.Any("claims", jwtToken.Claims))
+		objectType := strings.Split(message.Method, "/")[0]
+		paramsSplit := strings.Split(message.Params.Name, ":")
+		objectName := paramsSplit[1]
+		proxyName := paramsSplit[0]
 
-		hasPermission := s.Provider.VerifyPermissions(c.Request().Context(), objectType, objectName, proxyName, jwtToken.Claims)
+		hasPermission := s.Provider.VerifyPermissions(c.Request().Context(), objectType, proxyName, objectName, jwtToken.Claims)
 		if !hasPermission {
 			return s.unauth(c, "insufficient_scope", "Insufficient scope")
 		}

@@ -30,6 +30,13 @@ func (b *BaseProvider) VerifyPermissions(
 		zap.Any("claims", claims))
 	roles := b.attributeToRoles(ctx, claims)
 
+	if len(roles) == 0 {
+		b.logger.Debug("No roles found for claims", zap.Any("claims", claims))
+		return false
+	}
+
+	b.logger.Debug("Found roles for claims", zap.Strings("roles", roles))
+
 	// Resolve all roles in parallel ‑ stored in a thread‑safe slice.
 	type rolePerm struct {
 		name        string
@@ -42,7 +49,6 @@ func (b *BaseProvider) VerifyPermissions(
 	g, ctx := errgroup.WithContext(ctx)
 
 	for _, roleName := range roles {
-		roleName := roleName // capture
 		g.Go(func() error {
 			role, err := b.storage.GetRole(ctx, roleName)
 			if err != nil {
@@ -124,6 +130,11 @@ func (b *BaseProvider) lookup(
 	claim, value string,
 ) []string {
 	mapping, err := b.storage.GetAttributeToRoles(ctx, claim, value)
+	b.logger.Debug("looking up attribute to roles",
+		zap.String("claim", claim),
+		zap.String("value", value),
+		zap.Any("mapping", mapping),
+		zap.Error(err))
 	if err != nil || len(mapping.Roles) == 0 {
 		b.logger.Debug("GetAttributeToRoles failed",
 			zap.String("claim", claim),
