@@ -1,83 +1,47 @@
-# Default values for mcp-gateway.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
 replicaCount: 1
-
 image:
   repository: ghcr.io/matthisholleville/mcp-gateway-dev
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: "dev-788f103e590a6381f94cfe88fd190332b336251e"
-
+  tag: 0.1.0
 imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
+nameOverride: ''
+fullnameOverride: ''
 containerPort: 8082
-
 serviceAccount:
-  # Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
-
+  name: ''
 podAnnotations:
-  prometheus.io/scrape: "true"
-  prometheus.io/port: "8082"
-
-podSecurityContext:
-  {}
-  # fsGroup: 2000
-
-securityContext:
-  {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-
+  prometheus.io/scrape: 'true'
+  prometheus.io/port: '8082'
+podSecurityContext: {}
+securityContext: {}
 service:
   type: ClusterIP
   port: 80
-
 ingress:
   enabled: false
-  className: ""
-  annotations:
-    {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  className: ''
+  annotations: {}
   hosts:
     - host: chart-example.local
       paths:
         - path: /
           pathType: ImplementationSpecific
   tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
-
 resources:
   limits:
     memory: 1Gi
   requests:
     cpu: 100m
     memory: 512Mi
-
 migrate:
   enabled: true
-
 extraEnv:
   - name: MCP_GATEWAY_AUTH_PROVIDER_ENABLED
-    value: "true"
+    value: 'true'
   - name: MCP_GATEWAY_AUTH_PROVIDER_NAME
-    value: "okta"
+    value: okta
   - name: MCP_GATEWAY_OKTA_ISSUER
     valueFrom:
       secretKeyRef:
@@ -104,45 +68,38 @@ extraEnv:
         name: okta-secret
         key: private_key_id
   - name: MCP_GATEWAY_OAUTH_ENABLED
-    value: "false"
+    value: 'false'
   - name: MCP_GATEWAY_BACKEND_ENGINE
-    value: "postgres"
+    value: postgres
   - name: MCP_GATEWAY_BACKEND_URI
-    value: "postgresql://postgres:will-change@mcp-gateway-postgresql:5432/mcp-gateway?sslmode=disable"
+    value: >-
+      postgresql://postgres:will-change@mcp-gateway-postgresql:5432/mcp-gateway?sslmode=disable
   - name: MCP_GATEWAY_BACKEND_USERNAME
-    value: "postgres"
+    value: postgres
   - name: MCP_GATEWAY_BACKEND_PASSWORD
     valueFrom:
       secretKeyRef:
         name: mcp-gateway-postgresql-secret
         key: postgresql-password
   - name: MCP_GATEWAY_BACKEND_ENCRYPTION_KEY
-    value: "0123456789abcdeffedcba9876543210cafebabefacefeeddeadbeef00112233" # Change this to a random key
+    value: 0123456789abcdeffedcba9876543210cafebabefacefeeddeadbeef00112233
   - name: MCP_GATEWAY_HTTP_ADMIN_API_KEY
-    value: "admin" # Change this to a random string
-
+    value: admin
 configuration: |
   # MCP Gateway configuration
-
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
-
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
-
 postgresql:
   enabled: true
   auth:
     database: mcp-gateway
     username: postgres
-    # define a secret with values for "postgres-password", "password" (user Password)
     existingSecret: mcp-gateway-postgresql-secret
     secretKeys:
       adminPasswordKey: postgresql-password
