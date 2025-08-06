@@ -157,7 +157,15 @@ jobs:
           container_image_tag_latest: true
           container_image_tag: ${{ needs.release-please.outputs.tag_name }}
           container_image_push: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.RELEASE_TOKEN }}
+      
+      - name: Release helm chart
+        uses: bitdeps/helm-oci-charts-releaser@main
+        with:
+            oci_registry: ghcr.io/matthisholleville/mcp-gateway-charts
+            oci_username: username
+            oci_password: ${{ secrets.RELEASE_TOKEN }}
+            github_token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Generate SBOM
         uses: anchore/sbom-action@55dc4ee22412511ee8c3142cbea40418e6cec693 # v0.17.8

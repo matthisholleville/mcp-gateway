@@ -36,3 +36,8 @@ bin/
 build/
 .envrc
 .env
+
+### Helm ###
+# Chart dependencies
+charts/mcp-gateway/charts/*tgz
+charts/mcp-gateway/Chart.lock

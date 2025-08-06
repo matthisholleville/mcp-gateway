@@ -27,16 +27,30 @@ spec:
       serviceAccountName: {{ include "mcp-gateway.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.migrate.enabled }}
+      initContainers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["migrate", "--verbose","--log-level", "info", "--log-format", "json"]
+          volumeMounts:
+            - name: {{ include "mcp-gateway.fullname" . }}-config
+              mountPath: /etc/mcp-gateway
+          env:
+            {{- with .Values.extraEnv }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["serve", "--config", "/config/mcp-gateway.yaml", "--log-level", "info"]
+          args: ["serve", "--log-level", "info", "--log-format", "json"]
           volumeMounts:
             - name: {{ include "mcp-gateway.fullname" . }}-config
-              mountPath: /config
+              mountPath: /etc/mcp-gateway
           ports:
             - name: http
               containerPort: {{ .Values.containerPort }}

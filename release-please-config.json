@@ -9,9 +9,16 @@
             "bump-patch-for-minor-pre-major": true,
             "draft": false,
             "extra-files": [
-                "README.md",
-                "/charts/mcp-gateway/Chart.yaml",
-                "/charts/mcp-gateway/values.yaml"
+                {
+                    "type": "yaml",
+                    "path": "charts/mcp-gateway/Chart.yaml",
+                    "jsonpath": "$.appVersion"
+                },
+                {
+                    "type": "yaml",
+                    "path": "charts/mcp-gateway/values.yaml",
+                    "jsonpath": "$.image.tag"
+                }
             ],
             "changelog-sections": [
                 {

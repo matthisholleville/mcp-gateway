@@ -1,7 +1,7 @@
 -- Create the mcp_gateway schema if it doesn't exist
 CREATE SCHEMA IF NOT EXISTS mcp_gateway;
 
--- Set the search path to use the agicapd schema
+-- Set the search path to use the mcp_gateway schema
 SET search_path TO mcp_gateway, public;
 
 -- Create the proxy table

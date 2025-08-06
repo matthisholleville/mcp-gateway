@@ -8,7 +8,7 @@ image:
   repository: ghcr.io/matthisholleville/mcp-gateway-dev
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "dev-788f103e590a6381f94cfe88fd190332b336251e"
+  tag: "dev-f810708eb3c412858fef136fb8668078457adf92"
 
 imagePullSecrets: []
 nameOverride: ""

@@ -4,6 +4,8 @@ Simple Helm chart to deploy MCP Gateway on Kubernetes.
 
 ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 
+Simple Helm chart to deploy MCP Gateway on Kubernetes.
+
 ## Quick Installation
 
 ```bash
@@ -42,6 +44,12 @@ helm uninstall mcp-gateway -n mcp-gateway
 kubectl delete namespace mcp-gateway
 ```
 
+## Requirements
+
+| Repository | Name | Version |
+|------------|------|---------|
+| https://charts.bitnami.com/bitnami | postgresql | 15.5.38 |
+
 ## Values
 
 | Key | Type | Default | Description |
@@ -51,32 +59,23 @@ kubectl delete namespace mcp-gateway
 | autoscaling.maxReplicas | int | `100` |  |
 | autoscaling.minReplicas | int | `1` |  |
 | autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
-| configuration | string | `"# MCP Gateway configuration\n\n# CORS\ncors:\n  enabled: true\n  allowed_origins:\n    - \"*\"\n  allowed_methods:\n    - \"GET\"\n    - \"POST\"\n    - \"PUT\"\n    - \"DELETE\"\n  allowed_headers:\n    - \"Content-Type\"\n    - \"Authorization\"\n  allow_credentials: true\n\n# Server\nserver:\n  url: \"http://localhost:8082\"\n\n# OAuth\noauth:\n  enabled: true\n  provider: \"okta\"\n  authorization_servers:\n    - \"${OKTA_ISSUER}\"\n  bearer_methods_supported:\n    - \"header\"\n  scopes_supported:\n    - \"openid\"\n\n# Okta\nokta:\n  issuer: \"${OKTA_ISSUER}\"\n  org_url: \"${OKTA_ORG_URL}\"\n  client_id: \"${OKTA_CLIENT_ID}\"\n  private_key: \"${OKTA_PRIVATE_KEY}\"\n  private_key_id: \"${OKTA_PRIVATE_KEY_ID}\"\n\n# Auth\nauth:\n  claims: [\"groups\"]\n  mappings:\n    # claim name:group name -> scope name\n    \"groups:Base\": [\"scope:1\"]\n  permissions:\n    \"*\": [\"scope:1\"]\n\n  options:\n    scope_mode: \"any\" # OR logic. Any is the user has at least one of the scopes. All is the user has all the scopes.\n    default_scope: null # deny by default\n    enabled: true\n\n# Proxy\nproxy:\n  servers:\n    - name: \"n8n\"\n      type: \"streamable-http\"\n      connection:\n        url: \"${N8N_URL}\"\n        timeout: 30s\n      auth:\n        type: \"header\"\n        header: \"x-n8n-key\"\n        value: \"${N8N_PROXY_KEY}\"\n  proxy_config:\n    # Cache for tools and schemas to avoid repeated calls\n    cache_ttl: 300s # 5 minutes\n    heartbeat:\n      enabled: true\n      interval_seconds: 10\n"` |  |
+| configuration | string | `"# MCP Gateway configuration\n"` |  |
 | containerPort | int | `8082` |  |
-| extraEnv[0].name | string | `"OKTA_ISSUER"` |  |
-| extraEnv[0].valueFrom.secretKeyRef.key | string | `"issuer"` |  |
-| extraEnv[0].valueFrom.secretKeyRef.name | string | `"okta-secret"` |  |
-| extraEnv[1].name | string | `"OKTA_ORG_URL"` |  |
-| extraEnv[1].valueFrom.secretKeyRef.key | string | `"org_url"` |  |
-| extraEnv[1].valueFrom.secretKeyRef.name | string | `"okta-secret"` |  |
-| extraEnv[2].name | string | `"OKTA_CLIENT_ID"` |  |
-| extraEnv[2].valueFrom.secretKeyRef.key | string | `"client_id"` |  |
-| extraEnv[2].valueFrom.secretKeyRef.name | string | `"okta-secret"` |  |
-| extraEnv[3].name | string | `"OKTA_PRIVATE_KEY"` |  |
-| extraEnv[3].valueFrom.secretKeyRef.key | string | `"private_key"` |  |
-| extraEnv[3].valueFrom.secretKeyRef.name | string | `"okta-secret"` |  |
-| extraEnv[4].name | string | `"OKTA_PRIVATE_KEY_ID"` |  |
-| extraEnv[4].valueFrom.secretKeyRef.key | string | `"private_key_id"` |  |
-| extraEnv[4].valueFrom.secretKeyRef.name | string | `"okta-secret"` |  |
-| extraEnv[5].name | string | `"N8N_URL"` |  |
-| extraEnv[5].value | string | `"https://n8n.example.com"` |  |
-| extraEnv[6].name | string | `"N8N_PROXY_KEY"` |  |
-| extraEnv[6].valueFrom.secretKeyRef.key | string | `"proxy_key"` |  |
-| extraEnv[6].valueFrom.secretKeyRef.name | string | `"n8n-secret"` |  |
+| extraEnv[0].name | string | `"MCP_GATEWAY_BACKEND_ENGINE"` |  |
+| extraEnv[0].value | string | `"postgres"` |  |
+| extraEnv[1].name | string | `"MCP_GATEWAY_BACKEND_URI"` |  |
+| extraEnv[1].value | string | `"postgresql://postgres:will-change@mcp-gateway-postgresql:5432/mcp-gateway?sslmode=disable"` |  |
+| extraEnv[2].name | string | `"MCP_GATEWAY_BACKEND_PASSWORD"` |  |
+| extraEnv[2].valueFrom.secretKeyRef.key | string | `"postgresql-password"` |  |
+| extraEnv[2].valueFrom.secretKeyRef.name | string | `"mcp-gateway-postgresql-secret"` |  |
+| extraEnv[3].name | string | `"MCP_GATEWAY_BACKEND_ENCRYPTION_KEY"` |  |
+| extraEnv[3].value | string | `"0123456789abcdeffedcba9876543210cafebabefacefeeddeadbeef00112233"` |  |
+| extraEnv[4].name | string | `"MCP_GATEWAY_HTTP_ADMIN_API_KEY"` |  |
+| extraEnv[4].value | string | `"admin"` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"ghcr.io/matthisholleville/mcp-gateway-dev"` |  |
-| image.tag | string | `"dev-41d8a422698fe223d91b8813a2185e1e13854b12"` |  |
+| image.tag | string | `"dev-f810708eb3c412858fef136fb8668078457adf92"` |  |
 | imagePullSecrets | list | `[]` |  |
 | ingress.annotations | object | `{}` |  |
 | ingress.className | string | `""` |  |
@@ -85,11 +84,17 @@ kubectl delete namespace mcp-gateway
 | ingress.hosts[0].paths[0].path | string | `"/"` |  |
 | ingress.hosts[0].paths[0].pathType | string | `"ImplementationSpecific"` |  |
 | ingress.tls | list | `[]` |  |
+| migrate.enabled | bool | `true` |  |
 | nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
 | podAnnotations."prometheus.io/port" | string | `"8082"` |  |
 | podAnnotations."prometheus.io/scrape" | string | `"true"` |  |
 | podSecurityContext | object | `{}` |  |
+| postgresql.auth.database | string | `"mcp-gateway"` |  |
+| postgresql.auth.existingSecret | string | `"mcp-gateway-postgresql-secret"` |  |
+| postgresql.auth.secretKeys.adminPasswordKey | string | `"postgresql-password"` |  |
+| postgresql.auth.username | string | `"postgres"` |  |
+| postgresql.enabled | bool | `true` |  |
 | replicaCount | int | `1` |  |
 | resources.limits.memory | string | `"1Gi"` |  |
 | resources.requests.cpu | string | `"100m"` |  |

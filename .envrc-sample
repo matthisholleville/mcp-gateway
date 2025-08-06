@@ -7,3 +7,8 @@ export MCP_GATEWAY_OKTA_PRIVATE_KEY_ID="***REDACTED***"
 export MCP_GATEWAY_OKTA_CLIENT_ID="***REDACTED***"   
 export MCP_GATEWAY_OKTA_ORG_URL="***REDACTED***"
 export MCP_GATEWAY_OKTA_ISSUER="***REDACTED***"
+export MCP_GATEWAY_AUTH_PROVIDER_ENABLED="***REDACTED***"
+export MCP_GATEWAY_AUTH_PROVIDER_NAME="***REDACTED***"
+
+export MCP_GATEWAY_BACKEND_ENGINE=postgres
+export MCP_GATEWAY_BACKEND_URI=postgresql://mcp-gateway:changeme@localhost:5439/mcp-gateway?sslmode=disable

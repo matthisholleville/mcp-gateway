@@ -125,6 +125,7 @@ func (b *BaseProvider) attributeToRoles(
 	return roles
 }
 
+// TODO: Actually we query the DB so multiple times (1 call perm), we could cache the results and search in memory
 func (b *BaseProvider) lookup(
 	ctx context.Context,
 	claim, value string,
